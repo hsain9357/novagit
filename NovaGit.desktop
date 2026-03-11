@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=GitGUIApp
-Comment=A simple Git GUI application
-Exec=GitGUIApp
+Name=NovaGit
+Comment=A high-performance, AI-powered Git GUI client
+Exec=NovaGit
 Icon=git
 Terminal=false
 Categories=Development;Git;

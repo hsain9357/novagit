@@ -1,12 +1,12 @@
-# GitGUIApp
+# NovaGit
 
-A ultra-lightweight, modern Git GUI client built with C++ and Qt6, featuring AI-powered commit message generation.
+An ultra-lightweight, modern Git GUI client built with C++ and Qt6, featuring AI-powered commit message generation.
 
-## Why GitGUIApp?
+## Why NovaGit?
 
-In an era of bloated Electron-based applications, **GitGUIApp** stands out by being exceptionally efficient:
+In an era of bloated Electron-based applications, **NovaGit** stands out by being exceptionally efficient:
 
-- **Ultra-Tiny Memory Footprint:** While GitHub Desktop often spawns multiple processes that can collectively consume **500MB to 1GB+** of RAM, and IDEs like Visual Studio frequently exceed **2GB**, GitGUIApp is built on native C++ and Qt, typically using only around **50MB**.
+- **Ultra-Tiny Memory Footprint:** While GitHub Desktop often spawns multiple processes that can collectively consume **500MB to 1GB+** of RAM, and IDEs like Visual Studio frequently exceed **2GB**, NovaGit is built on native C++ and Qt, typically using only around **50MB**.
 - **Blazing Fast:** Instant startup and responsive UI, even on large repositories.
 - **Native Performance:** No web-tech or Electron overhead—just pure, compiled performance.
 
@@ -36,8 +36,8 @@ In an era of bloated Electron-based applications, **GitGUIApp** stands out by be
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/git-diff-app.git
-   cd git-diff-app
+   git clone https://github.com/yourusername/novagit.git
+   cd novagit
    ```
 
 2. **Create a build directory and run CMake:**
@@ -55,7 +55,7 @@ In an era of bloated Electron-based applications, **GitGUIApp** stands out by be
 
 After a successful build, you can run the application directly:
 ```bash
-./build/GitGUIApp
+./build/NovaGit
 ```
 
 ### Installation (Optional)
@@ -83,7 +83,8 @@ To use the AI commit message feature, you need a Google Gemini API key:
 - `src/`: Core source files (C++ & Headers).
 - `CMakeLists.txt`: Project build configuration.
 - `AGENTS.md`: Guidelines for autonomous agents working on this codebase.
-- `GitGUIApp.desktop`: Linux desktop entry file.
+- `NovaGit.desktop`: Linux desktop entry file.
+
 
 ## License
 
