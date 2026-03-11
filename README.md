@@ -23,7 +23,7 @@ In an era of bloated Electron-based applications, **NovaGit** stands out by bein
 
 ## Screenshots
 
-![NovaGit Screenshot](2026-03-11-150357_hyprshot.png)
+![NovaGit Screenshot](2026-03-11-150611_hyprshot.png)
 
 ## Prerequisites
 
