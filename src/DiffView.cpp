@@ -1,38 +1,40 @@
 #include "DiffView.h"
+#include <QHBoxLayout>
+#include <QScrollBar>
 #include <QSyntaxHighlighter>
 #include <QTextCharFormat>
 
-class DiffHighlighter : public QSyntaxHighlighter {
-public:
-    explicit DiffHighlighter(QTextDocument *parent) : QSyntaxHighlighter(parent) {}
+DiffView::DiffView(QWidget *parent) : QWidget(parent) {
+    QHBoxLayout *layout = new QHBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(1);
 
-protected:
-    void highlightBlock(const QString &text) override {
-        QTextCharFormat format;
-        if (text.startsWith("+")) {
-            format.setForeground(Qt::darkGreen);
-            format.setBackground(QColor(230, 255, 230));
-            setFormat(0, text.length(), format);
-        } else if (text.startsWith("-")) {
-            format.setForeground(Qt::darkRed);
-            format.setBackground(QColor(255, 230, 230));
-            setFormat(0, text.length(), format);
-        } else if (text.startsWith("@@")) {
-            format.setForeground(Qt::blue);
-            setFormat(0, text.length(), format);
-        }
+    leftEdit = new QTextEdit();
+    rightEdit = new QTextEdit();
+
+    for (auto edit : {leftEdit, rightEdit}) {
+        edit->setReadOnly(true);
+        edit->setLineWrapMode(QTextEdit::NoWrap);
+        edit->setFont(QFont("Monospace", 10));
+        edit->setStyleSheet("QTextEdit { background-color: #1e1e1e; color: #d4d4d4; border: none; }");
     }
-};
 
-DiffView::DiffView(QWidget *parent) : QTextEdit(parent) {
-    setReadOnly(true);
-    setLineWrapMode(QTextEdit::NoWrap);
-    QFont font("Monospace", 10);
-    font.setStyleHint(QFont::TypeWriter);
-    setFont(font);
-    new DiffHighlighter(document());
+    layout->addWidget(leftEdit);
+    layout->addWidget(rightEdit);
+
+    // Sync scrolling
+    connect(leftEdit->verticalScrollBar(), &QScrollBar::valueChanged,
+            rightEdit->verticalScrollBar(), &QScrollBar::setValue);
+    connect(rightEdit->verticalScrollBar(), &QScrollBar::valueChanged,
+            leftEdit->verticalScrollBar(), &QScrollBar::setValue);
 }
 
-void DiffView::setDiff(const QString &diffText) {
-    setPlainText(diffText);
+void DiffView::setDiff(const QString &leftContent, const QString &rightContent) {
+    leftEdit->setPlainText(leftContent);
+    rightEdit->setPlainText(rightContent);
+}
+
+void DiffView::clear() {
+    leftEdit->clear();
+    rightEdit->clear();
 }

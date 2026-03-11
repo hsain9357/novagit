@@ -20,6 +20,8 @@ public:
     QString repositoryPath() const;
 
     QList<GitFileStatus> getStatus();
+    QString getFileContent(const QString &filePath, bool staged); // Get original version from git
+    QString getWorkingFileContent(const QString &filePath);       // Get current file content
     QString getDiff(const QString &filePath, bool staged);
     bool stageFile(const QString &filePath);
     bool unstageFile(const QString &filePath);

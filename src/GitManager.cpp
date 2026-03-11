@@ -1,6 +1,7 @@
 #include "GitManager.h"
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 
 GitManager::GitManager(QObject *parent) : QObject(parent) {
     m_repositoryPath = QDir::currentPath();
@@ -47,6 +48,25 @@ QList<GitFileStatus> GitManager::getStatus() {
         }
     }
     return fileStatuses;
+}
+
+QString GitManager::getFileContent(const QString &filePath, bool staged) {
+    // If staged, compare with HEAD. If unstaged, compare with Index.
+    QString ref = staged ? "HEAD" : "";
+    if (ref.isEmpty()) {
+        // For unstaged changes, we want the version in the index
+        return runGitCommand({"show", ":" + filePath});
+    } else {
+        return runGitCommand({"show", ref + ":" + filePath});
+    }
+}
+
+QString GitManager::getWorkingFileContent(const QString &filePath) {
+    QFile file(m_repositoryPath + "/" + filePath);
+    if (file.open(QFile::ReadOnly | QFile::Text)) {
+        return QString::fromUtf8(file.readAll());
+    }
+    return QString();
 }
 
 QString GitManager::getDiff(const QString &filePath, bool staged) {
