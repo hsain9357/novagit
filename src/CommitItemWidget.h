@@ -14,6 +14,7 @@ public:
 
 signals:
     void checkoutRequested(const QString &hash);
+    void resetRequested(const QString &hash, bool hard);
     void sizeChanged();
 
 protected:

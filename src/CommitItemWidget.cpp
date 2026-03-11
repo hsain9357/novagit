@@ -1,9 +1,29 @@
 #include "CommitItemWidget.h"
 #include <QHBoxLayout>
 #include <QMouseEvent>
+#include <QMenu>
+#include <QClipboard>
+#include <QApplication>
 
 CommitItemWidget::CommitItemWidget(const GitCommit &commit, QWidget *parent)
     : QWidget(parent), m_commit(commit) {
+    setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(this, &QWidget::customContextMenuRequested, [this](const QPoint &pos) {
+        QMenu menu(this);
+        QAction *copyAction = menu.addAction("Copy Commit ID");
+        menu.addSeparator();
+        QAction *softReset = menu.addAction("Reset Soft (Keep changes)");
+        QAction *hardReset = menu.addAction("Reset Hard (Discard changes)");
+
+        QAction *selectedAction = menu.exec(mapToGlobal(pos));
+        if (selectedAction == copyAction) {
+            QApplication::clipboard()->setText(m_commit.hash);
+        } else if (selectedAction == softReset) {
+            emit resetRequested(m_commit.hash, false);
+        } else if (selectedAction == hardReset) {
+            emit resetRequested(m_commit.hash, true);
+        }
+    });
     setupUi();
 }
 

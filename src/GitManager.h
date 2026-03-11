@@ -45,6 +45,7 @@ public:
     bool pull();
     QList<GitCommit> getLog(int limit = 50);
     bool checkout(const QString &ref);
+    bool reset(const QString &ref, bool hard);
 
 private:
     QString runGitCommand(const QStringList &arguments);

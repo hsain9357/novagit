@@ -24,6 +24,7 @@ private slots:
     void refreshLog();
     void onFileSelected(QListWidgetItem *item);
     void checkoutCommit(const QString &hash);
+    void resetCommit(const QString &hash, bool hard);
     void stageSelected();
     void unstageSelected();
     void commitChanges();

@@ -170,3 +170,12 @@ bool GitManager::checkout(const QString &ref) {
     runGitCommand({"checkout", ref});
     return true;
 }
+
+bool GitManager::reset(const QString &ref, bool hard) {
+    QStringList args = {"reset"};
+    if (hard) args << "--hard";
+    else args << "--soft";
+    args << ref;
+    runGitCommand(args);
+    return true;
+}

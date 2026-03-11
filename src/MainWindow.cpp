@@ -183,6 +183,7 @@ void MainWindow::refreshLog() {
         logList->setItemWidget(item, widget);
         
         connect(widget, &CommitItemWidget::checkoutRequested, this, &MainWindow::checkoutCommit);
+        connect(widget, &CommitItemWidget::resetRequested, this, &MainWindow::resetCommit);
         connect(widget, &CommitItemWidget::sizeChanged, [item, widget]() {
             item->setSizeHint(widget->sizeHint());
         });
@@ -191,6 +192,20 @@ void MainWindow::refreshLog() {
 
 void MainWindow::checkoutCommit(const QString &hash) {
     if (gitManager->checkout(hash)) {
+        refreshStatus();
+        diffView->clear();
+    }
+}
+
+void MainWindow::resetCommit(const QString &hash, bool hard) {
+    if (hard) {
+        auto result = QMessageBox::question(this, "Reset Hard", 
+            "Are you sure you want to perform a hard reset? All uncommitted changes will be lost.",
+            QMessageBox::Yes | QMessageBox::No);
+        if (result != QMessageBox::Yes) return;
+    }
+    
+    if (gitManager->reset(hash, hard)) {
         refreshStatus();
         diffView->clear();
     }
