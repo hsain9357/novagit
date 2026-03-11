@@ -20,3 +20,29 @@ add_executable(GitGUIApp
 )
 
 target_link_libraries(GitGUIApp PRIVATE Qt6::Widgets Qt6::Core)
+
+# Generate install and uninstall scripts in the build folder
+set(INSTALL_SCRIPT "${CMAKE_BINARY_DIR}/install.sh")
+set(UNINSTALL_SCRIPT "${CMAKE_BINARY_DIR}/uninstall.sh")
+
+file(WRITE ${INSTALL_SCRIPT}
+"#!/bin/bash
+# Install script for GitGUIApp
+DEST_DIR=\"/usr/local/bin\"
+echo \"Installing GitGUIApp to $DEST_DIR...\"
+sudo cp \"\$(dirname \"\$0\")/GitGUIApp\" \"\$DEST_DIR/\"
+sudo chmod +x \"\$DEST_DIR/GitGUIApp\"
+echo \"Installation complete.\"
+")
+
+file(WRITE ${UNINSTALL_SCRIPT}
+"#!/bin/bash
+# Uninstall script for GitGUIApp
+DEST_DIR=\"/usr/local/bin\"
+echo \"Uninstalling GitGUIApp from $DEST_DIR...\"
+sudo rm \"$DEST_DIR/GitGUIApp\"
+echo \"Uninstallation complete.\"
+")
+
+# Make scripts executable
+execute_process(COMMAND chmod +x ${INSTALL_SCRIPT} ${UNINSTALL_SCRIPT})

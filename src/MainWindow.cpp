@@ -4,11 +4,20 @@
 #include <QMessageBox>
 #include <QHeaderView>
 #include <QFileDialog>
+#include <QHBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     gitManager = new GitManager(this);
     setupUi();
+    loadSettings();
+    if (!gitManager->repositoryPath().isEmpty()) {
+        updateRecentFolders(gitManager->repositoryPath());
+    }
     refreshStatus();
+}
+
+MainWindow::~MainWindow() {
+    saveSettings();
 }
 
 void MainWindow::setupUi() {
@@ -23,6 +32,11 @@ void MainWindow::setupUi() {
 
     QPushButton *openBtn = new QPushButton("Open Folder");
     sidebarLayout->addWidget(openBtn);
+
+    sidebarLayout->addWidget(new QLabel("RECENT FOLDERS"));
+    recentFoldersCombo = new QComboBox();
+    recentFoldersCombo->setPlaceholderText("Select a recent folder...");
+    sidebarLayout->addWidget(recentFoldersCombo);
 
     sidebarLayout->addWidget(new QLabel("STAGED CHANGES"));
     stagedList = new QListWidget();
@@ -58,6 +72,7 @@ void MainWindow::setupUi() {
 
     // Connect signals
     connect(openBtn, &QPushButton::clicked, this, &MainWindow::openFolder);
+    connect(recentFoldersCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onRecentFolderSelected);
     connect(unstagedList, &QListWidget::itemClicked, this, &MainWindow::onFileSelected);
     connect(stagedList, &QListWidget::itemClicked, this, &MainWindow::onFileSelected);
     connect(unstagedList, &QListWidget::itemDoubleClicked, this, &MainWindow::stageSelected);
@@ -71,9 +86,66 @@ void MainWindow::openFolder() {
     QString dir = QFileDialog::getExistingDirectory(this, "Open Git Repository", gitManager->repositoryPath());
     if (!dir.isEmpty()) {
         gitManager->setRepositoryPath(dir);
+        updateRecentFolders(dir);
         refreshStatus();
         diffView->clear();
     }
+}
+
+void MainWindow::onRecentFolderSelected(int index) {
+    if (index < 0) return;
+    QString dir = recentFoldersCombo->itemText(index);
+    if (!dir.isEmpty() && dir != gitManager->repositoryPath()) {
+        gitManager->setRepositoryPath(dir);
+        refreshStatus();
+        diffView->clear();
+    }
+}
+
+void MainWindow::loadSettings() {
+    QSettings settings("GitGUIApp", "GitGUIApp");
+    QString lastDir = settings.value("lastFolder").toString();
+    if (!lastDir.isEmpty()) {
+        gitManager->setRepositoryPath(lastDir);
+    }
+
+    QStringList recentFolders = settings.value("recentFolders").toStringList();
+    recentFoldersCombo->blockSignals(true);
+    recentFoldersCombo->addItems(recentFolders);
+    if (!lastDir.isEmpty()) {
+        int idx = recentFoldersCombo->findText(lastDir);
+        if (idx >= 0) {
+            recentFoldersCombo->setCurrentIndex(idx);
+        }
+    }
+    recentFoldersCombo->blockSignals(false);
+}
+
+void MainWindow::saveSettings() {
+    QSettings settings("GitGUIApp", "GitGUIApp");
+    settings.setValue("lastFolder", gitManager->repositoryPath());
+    
+    QStringList recentFolders;
+    for (int i = 0; i < recentFoldersCombo->count(); ++i) {
+        recentFolders << recentFoldersCombo->itemText(i);
+    }
+    settings.setValue("recentFolders", recentFolders);
+}
+
+void MainWindow::updateRecentFolders(const QString &path) {
+    recentFoldersCombo->blockSignals(true);
+    int idx = recentFoldersCombo->findText(path);
+    if (idx >= 0) {
+        recentFoldersCombo->removeItem(idx);
+    }
+    recentFoldersCombo->insertItem(0, path);
+    recentFoldersCombo->setCurrentIndex(0);
+    
+    // Keep only last 10
+    while (recentFoldersCombo->count() > 10) {
+        recentFoldersCombo->removeItem(recentFoldersCombo->count() - 1);
+    }
+    recentFoldersCombo->blockSignals(false);
 }
 
 void MainWindow::refreshStatus() {
