@@ -15,6 +15,10 @@ public:
 private:
     QTextEdit *leftEdit;
     QTextEdit *rightEdit;
+    
+    // Gutter/Line Number support would go here in a more complex implementation
+    // For now, let's focus on fixing the alignment logic in the CPP.
+
     void applyDiffAlignment(const QString &leftContent, const QString &rightContent, const QList<GitHunk> &hunks);
 };
 

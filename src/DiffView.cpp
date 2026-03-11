@@ -3,7 +3,6 @@
 #include <QScrollBar>
 #include <QSyntaxHighlighter>
 #include <QTextCharFormat>
-
 #include <QTextBlock>
 
 DiffView::DiffView(QWidget *parent) : QWidget(parent) {
@@ -26,7 +25,6 @@ DiffView::DiffView(QWidget *parent) : QWidget(parent) {
     layout->addWidget(leftEdit);
     layout->addWidget(rightEdit);
 
-    // Sync scrolling
     connect(rightEdit->verticalScrollBar(), &QScrollBar::valueChanged,
             leftEdit->verticalScrollBar(), &QScrollBar::setValue);
     connect(leftEdit->verticalScrollBar(), &QScrollBar::valueChanged,
@@ -45,135 +43,97 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
         QString text;
         bool isPlaceholder = false;
         QColor bgColor = Qt::transparent;
-        QList<QPair<int, int>> wordHighlights; // start, length
+        QList<QPair<int, int>> wordHighlights;
     };
 
     QList<DisplayLine> leftDisplay, rightDisplay;
     int leftIdx = 0, rightIdx = 0;
 
-    auto getIntraLineDiff = [](const QString &oldLine, const QString &newLine) {
-        // Simple word-level diff: find common prefix and suffix
+    auto getIntraLineDiff = [](const QString &oldL, const QString &newL) {
+        if (oldL.trimmed() == newL.trimmed()) return qMakePair(QList<QPair<int, int>>(), QList<QPair<int, int>>());
         int prefix = 0;
-        while (prefix < oldLine.length() && prefix < newLine.length() && oldLine[prefix] == newLine[prefix]) {
-            prefix++;
-        }
-        int oldSuffix = oldLine.length() - 1;
-        int newSuffix = newLine.length() - 1;
-        while (oldSuffix >= prefix && newSuffix >= prefix && oldLine[oldSuffix] == newLine[newSuffix]) {
-            oldSuffix--;
-            newSuffix--;
-        }
-        
-        QList<QPair<int, int>> oldHighlights, newHighlights;
-        if (oldSuffix >= prefix) {
-            oldHighlights.append({prefix, oldSuffix - prefix + 1});
-        }
-        if (newSuffix >= prefix) {
-            newHighlights.append({prefix, newSuffix - prefix + 1});
-        }
-        return qMakePair(oldHighlights, newHighlights);
+        while (prefix < oldL.length() && prefix < newL.length() && oldL[prefix] == newL[prefix]) prefix++;
+        int oldS = oldL.length() - 1, newS = newL.length() - 1;
+        while (oldS >= prefix && newS >= prefix && oldL[oldS] == newL[newS]) { oldS--; newS--; }
+        QList<QPair<int, int>> oh, nh;
+        if (oldS >= prefix) oh.append({prefix, oldS - prefix + 1});
+        if (newS >= prefix) nh.append({prefix, newS - prefix + 1});
+        return qMakePair(oh, nh);
     };
 
     for (const auto &hunk : hunks) {
-        // Fill unchanged lines before hunk
-        while (leftIdx < hunk.oldStart - 1 && leftIdx < leftLines.size() && rightIdx < rightLines.size()) {
-            leftDisplay.append({leftLines[leftIdx], false});
-            rightDisplay.append({rightLines[rightIdx], false});
-            leftIdx++;
-            rightIdx++;
+        while (leftIdx < hunk.oldStart - 1 && leftIdx < leftLines.size() && rightIdx < hunk.newStart - 1 && rightIdx < rightLines.size()) {
+            leftDisplay.append({leftLines[leftIdx++], false});
+            rightDisplay.append({rightLines[rightIdx++], false});
         }
 
-        // Process hunk
-        QStringList hunkOld, hunkNew;
+        QStringList hOld, hNew;
         for (const QString &line : hunk.lines) {
-            if (line.startsWith("-")) hunkOld.append(line.mid(1));
-            else if (line.startsWith("+")) hunkNew.append(line.mid(1));
+            if (line.startsWith("-")) hOld.append(line.mid(1));
+            else if (line.startsWith("+")) hNew.append(line.mid(1));
         }
 
-        int maxLen = qMax(hunkOld.size(), hunkNew.size());
-        QColor delColor(255, 0, 0, 40);
-        QColor addColor(0, 255, 0, 40);
+        int maxL = qMax(hOld.size(), hNew.size());
+        QColor dCol(255, 0, 0, 40), aCol(0, 255, 0, 40), pCol(45, 45, 45, 120);
 
-        for (int i = 0; i < maxLen; ++i) {
-
-            QList<QPair<int, int>> leftWords, rightWords;
-            if (i < hunkOld.size() && i < hunkNew.size()) {
-                auto diff = getIntraLineDiff(hunkOld[i], hunkNew[i]);
-                leftWords = diff.first;
-                rightWords = diff.second;
+        for (int i = 0; i < maxL; ++i) {
+            QList<QPair<int, int>> lW, rW;
+            if (i < hOld.size() && i < hNew.size()) {
+                auto d = getIntraLineDiff(hOld[i], hNew[i]);
+                lW = d.first; rW = d.second;
             }
-
-            if (i < hunkOld.size()) {
-                leftDisplay.append({hunkOld[i], false, delColor, leftWords});
-                leftIdx++;
-            } else {
-                leftDisplay.append({"", true, QColor(45, 45, 45, 100)});
-            }
-
-            if (i < hunkNew.size()) {
-                rightDisplay.append({hunkNew[i], false, addColor, rightWords});
-                rightIdx++;
-            } else {
-                rightDisplay.append({"", true, QColor(45, 45, 45, 100)});
-            }
+            if (i < hOld.size()) leftDisplay.append({hOld[i], false, dCol, lW});
+            else leftDisplay.append({"", true, pCol});
+            if (i < hNew.size()) rightDisplay.append({hNew[i], false, aCol, rW});
+            else rightDisplay.append({"", true, pCol});
         }
+        leftIdx += hOld.size();
+        rightIdx += hNew.size();
     }
 
-    // Fill remaining lines
     while (leftIdx < leftLines.size() || rightIdx < rightLines.size()) {
-        QString lText = (leftIdx < leftLines.size()) ? leftLines[leftIdx++] : "";
-        QString rText = (rightIdx < rightLines.size()) ? rightLines[rightIdx++] : "";
-        leftDisplay.append({lText, leftIdx > leftLines.size()});
-        rightDisplay.append({rText, rightIdx > rightLines.size()});
+        QString l = (leftIdx < leftLines.size()) ? leftLines[leftIdx++] : "";
+        QString r = (rightIdx < rightLines.size()) ? rightLines[rightIdx++] : "";
+        leftDisplay.append({l, leftIdx > leftLines.size()});
+        rightDisplay.append({r, rightIdx > rightLines.size()});
     }
 
-    // Render
     leftEdit->clear();
     rightEdit->clear();
+    QColor dW(255, 0, 0, 100), aW(0, 255, 0, 100);
 
-    QColor delWordHighlight(255, 0, 0, 100);
-    QColor addWordHighlight(0, 255, 0, 100);
-
-    auto render = [](QTextEdit *edit, const QList<DisplayLine> &display, QColor wordHighlightColor) {
-        QTextCursor cursor(edit->document());
-        QList<QTextEdit::ExtraSelection> selections;
-
-        for (int i = 0; i < display.size(); ++i) {
-            const auto &dl = display[i];
-            QTextCharFormat format;
-            if (dl.isPlaceholder) {
-                format.setBackground(dl.bgColor);
+    auto render = [](QTextEdit *ed, const QList<DisplayLine> &disp, QColor wCol) {
+        QTextCursor cur(ed->document());
+        QList<QTextEdit::ExtraSelection> sels;
+        for (int i = 0; i < disp.size(); ++i) {
+            const auto &dl = disp[i];
+            QTextCharFormat fmt;
+            if (dl.isPlaceholder) fmt.setBackground(dl.bgColor);
+            int start = cur.position();
+            cur.insertText(dl.text, fmt);
+            for (const auto &w : dl.wordHighlights) {
+                QTextEdit::ExtraSelection s;
+                s.format.setBackground(wCol);
+                QTextCursor wc = cur;
+                wc.setPosition(start + w.first);
+                wc.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, w.second);
+                s.cursor = wc;
+                sels.append(s);
             }
-            
-            int startPos = cursor.position();
-            cursor.insertText(dl.text, format);
-            
-            // Apply intra-line word highlights
-            for (const auto &highlight : dl.wordHighlights) {
-                QTextEdit::ExtraSelection wordSel;
-                wordSel.format.setBackground(wordHighlightColor);
-                
-                QTextCursor wordCursor = cursor;
-                wordCursor.setPosition(startPos + highlight.first);
-                wordCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, highlight.second);
-                wordSel.cursor = wordCursor;
-                selections.append(wordSel);
-            }
-
             if (!dl.isPlaceholder && dl.bgColor != Qt::transparent) {
-                QTextEdit::ExtraSelection lineSel;
-                lineSel.format.setBackground(dl.bgColor);
-                lineSel.format.setProperty(QTextFormat::FullWidthSelection, true);
-                lineSel.cursor = QTextCursor(edit->document()->findBlockByLineNumber(i));
-                selections.append(lineSel);
+                QTextEdit::ExtraSelection s;
+                s.format.setBackground(dl.bgColor);
+                s.format.setProperty(QTextFormat::FullWidthSelection, true);
+                s.cursor = QTextCursor(ed->document()->findBlockByLineNumber(i));
+                sels.append(s);
             }
-            cursor.insertBlock();
+            cur.insertBlock();
         }
-        edit->setExtraSelections(selections);
+        ed->setExtraSelections(sels);
     };
 
-    render(leftEdit, leftDisplay, delWordHighlight);
-    render(rightEdit, rightDisplay, addWordHighlight);
+    render(leftEdit, leftDisplay, dW);
+    render(rightEdit, rightDisplay, aW);
 }
 
 void DiffView::clear() {
