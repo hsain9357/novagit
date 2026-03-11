@@ -136,3 +136,37 @@ bool GitManager::pull() {
     runGitCommand({"pull"});
     return true;
 }
+
+QList<GitCommit> GitManager::getLog(int limit) {
+    QList<GitCommit> commits;
+    // Format: hash||author||date||subject||body<END_COMMIT>
+    QString format = "%H||%an||%ad||%s||%b<END_COMMIT>";
+    QString output = runGitCommand({"log", "-n", QString::number(limit), "--date=short", "--format=" + format});
+    
+    if (output.isEmpty()) return commits;
+
+    QStringList entries = output.split("<END_COMMIT>", Qt::SkipEmptyParts);
+    for (const QString &entry : entries) {
+        QString trimmedEntry = entry.trimmed();
+        if (trimmedEntry.isEmpty()) continue;
+        
+        QStringList parts = trimmedEntry.split("||");
+        if (parts.size() >= 4) {
+            GitCommit commit;
+            commit.hash = parts[0];
+            commit.author = parts[1];
+            commit.date = parts[2];
+            commit.subject = parts[3];
+            if (parts.size() >= 5) {
+                commit.message = parts[4].trimmed();
+            }
+            commits.append(commit);
+        }
+    }
+    return commits;
+}
+
+bool GitManager::checkout(const QString &ref) {
+    runGitCommand({"checkout", ref});
+    return true;
+}

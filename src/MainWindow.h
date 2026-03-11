@@ -21,7 +21,9 @@ private slots:
     void openFolder();
     void onRecentFolderSelected(int index);
     void refreshStatus();
+    void refreshLog();
     void onFileSelected(QListWidgetItem *item);
+    void checkoutCommit(const QString &hash);
     void stageSelected();
     void unstageSelected();
     void commitChanges();
@@ -32,6 +34,7 @@ private:
     GitManager *gitManager;
     QListWidget *stagedList;
     QListWidget *unstagedList;
+    QListWidget *logList;
     DiffView *diffView;
     QLineEdit *commitMessageEdit;
     QComboBox *recentFoldersCombo;

@@ -17,6 +17,14 @@ struct GitHunk {
     QStringList lines;
 };
 
+struct GitCommit {
+    QString hash;
+    QString author;
+    QString date;
+    QString message;
+    QString subject;
+};
+
 class GitManager : public QObject {
     Q_OBJECT
 public:
@@ -35,6 +43,8 @@ public:
     bool commit(const QString &message);
     bool push();
     bool pull();
+    QList<GitCommit> getLog(int limit = 50);
+    bool checkout(const QString &ref);
 
 private:
     QString runGitCommand(const QStringList &arguments);

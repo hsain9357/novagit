@@ -19,6 +19,8 @@ add_executable(GitGUIApp
     src/DiffView.h
     src/SyntaxHighlighter.cpp
     src/SyntaxHighlighter.h
+    src/CommitItemWidget.cpp
+    src/CommitItemWidget.h
 )
 
 target_link_libraries(GitGUIApp PRIVATE Qt6::Widgets Qt6::Core)

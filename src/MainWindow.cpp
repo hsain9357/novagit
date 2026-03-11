@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "CommitItemWidget.h"
 #include <QSplitter>
 #include <QLabel>
 #include <QMessageBox>
@@ -45,6 +46,12 @@ void MainWindow::setupUi() {
     sidebarLayout->addWidget(new QLabel("CHANGES"));
     unstagedList = new QListWidget();
     sidebarLayout->addWidget(unstagedList);
+
+    sidebarLayout->addWidget(new QLabel("GIT LOG"));
+    logList = new QListWidget();
+    logList->setSelectionMode(QAbstractItemView::NoSelection);
+    logList->setStyleSheet("QListWidget::item { border-bottom: 1px solid #333; }");
+    sidebarLayout->addWidget(logList);
 
     commitMessageEdit = new QLineEdit();
     commitMessageEdit->setPlaceholderText("Message (Ctrl+Enter to commit)");
@@ -161,6 +168,31 @@ void MainWindow::refreshStatus() {
         } else {
             unstagedList->addItem(item);
         }
+    }
+    refreshLog();
+}
+
+void MainWindow::refreshLog() {
+    logList->clear();
+    auto commits = gitManager->getLog(20);
+    for (const auto &commit : commits) {
+        QListWidgetItem *item = new QListWidgetItem(logList);
+        CommitItemWidget *widget = new CommitItemWidget(commit);
+        item->setSizeHint(widget->sizeHint());
+        logList->addItem(item);
+        logList->setItemWidget(item, widget);
+        
+        connect(widget, &CommitItemWidget::checkoutRequested, this, &MainWindow::checkoutCommit);
+        connect(widget, &CommitItemWidget::sizeChanged, [item, widget]() {
+            item->setSizeHint(widget->sizeHint());
+        });
+    }
+}
+
+void MainWindow::checkoutCommit(const QString &hash) {
+    if (gitManager->checkout(hash)) {
+        refreshStatus();
+        diffView->clear();
     }
 }
 
