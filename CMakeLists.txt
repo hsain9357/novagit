@@ -30,14 +30,22 @@ target_link_libraries(GitGUIApp PRIVATE Qt6::Widgets Qt6::Core Qt6::Network)
 # Generate install and uninstall scripts in the build folder
 set(INSTALL_SCRIPT "${CMAKE_BINARY_DIR}/install.sh")
 set(UNINSTALL_SCRIPT "${CMAKE_BINARY_DIR}/uninstall.sh")
+set(DESKTOP_FILE "${CMAKE_SOURCE_DIR}/GitGUIApp.desktop")
 
 file(WRITE ${INSTALL_SCRIPT}
 "#!/bin/bash
 # Install script for GitGUIApp
 DEST_DIR=\"/usr/local/bin\"
+DESKTOP_DIR=\"/usr/local/share/applications\"
+
 echo \"Installing GitGUIApp to $DEST_DIR...\"
 sudo cp \"\$(dirname \"\$0\")/GitGUIApp\" \"\$DEST_DIR/\"
 sudo chmod +x \"\$DEST_DIR/GitGUIApp\"
+
+echo \"Installing desktop entry to $DESKTOP_DIR...\"
+sudo mkdir -p \"\$DESKTOP_DIR\"
+sudo cp \"\$(dirname \"\$0\")/../GitGUIApp.desktop\" \"\$DESKTOP_DIR/\"
+
 echo \"Installation complete.\"
 ")
 
@@ -45,8 +53,14 @@ file(WRITE ${UNINSTALL_SCRIPT}
 "#!/bin/bash
 # Uninstall script for GitGUIApp
 DEST_DIR=\"/usr/local/bin\"
+DESKTOP_DIR=\"/usr/local/share/applications\"
+
 echo \"Uninstalling GitGUIApp from $DEST_DIR...\"
 sudo rm \"$DEST_DIR/GitGUIApp\"
+
+echo \"Uninstalling desktop entry from $DESKTOP_DIR...\"
+sudo rm \"$DESKTOP_DIR/GitGUIApp.desktop\"
+
 echo \"Uninstallation complete.\"
 ")
 
