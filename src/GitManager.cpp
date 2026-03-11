@@ -62,6 +62,10 @@ QString GitManager::getFileContent(const QString &filePath, bool staged) {
     }
 }
 
+QString GitManager::getFileContentAtRevision(const QString &filePath, const QString &revision) {
+    return runGitCommand({"show", revision + ":" + filePath});
+}
+
 QString GitManager::getWorkingFileContent(const QString &filePath) {
     QFile file(m_repositoryPath + "/" + filePath);
     if (file.open(QFile::ReadOnly | QFile::Text)) {
@@ -89,6 +93,38 @@ QList<GitHunk> GitManager::getHunks(const QString &filePath, bool staged) {
             currentHunk = GitHunk();
             
             // Format: @@ -oldStart,oldLines +newStart,newLines @@
+            QRegularExpression re("@@ -(\\d+)(?:,(\\d+))? \\+(\\d+)(?:,(\\d+))? @@");
+            QRegularExpressionMatch match = re.match(line);
+            if (match.hasMatch()) {
+                currentHunk.oldStart = match.captured(1).toInt();
+                currentHunk.oldLines = match.captured(2).isEmpty() ? 1 : match.captured(2).toInt();
+                currentHunk.newStart = match.captured(3).toInt();
+                currentHunk.newLines = match.captured(4).isEmpty() ? 1 : match.captured(4).toInt();
+            }
+        } else if (inHunk && (line.startsWith("+") || line.startsWith("-") || line.startsWith(" "))) {
+            currentHunk.lines.append(line);
+        }
+    }
+    if (inHunk) hunks.append(currentHunk);
+    return hunks;
+}
+
+QList<GitHunk> GitManager::getHunksForCommit(const QString &hash, const QString &filePath) {
+    QList<GitHunk> hunks;
+    // Compare with parent
+    QString output = runGitCommand({"diff", "-U0", hash + "^", hash, "--", filePath});
+    if (output.isEmpty()) return hunks;
+
+    QStringList lines = output.split('\n');
+    GitHunk currentHunk;
+    bool inHunk = false;
+
+    for (const QString &line : lines) {
+        if (line.startsWith("@@")) {
+            if (inHunk) hunks.append(currentHunk);
+            inHunk = true;
+            currentHunk = GitHunk();
+            
             QRegularExpression re("@@ -(\\d+)(?:,(\\d+))? \\+(\\d+)(?:,(\\d+))? @@");
             QRegularExpressionMatch match = re.match(line);
             if (match.hasMatch()) {

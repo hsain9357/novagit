@@ -36,6 +36,7 @@ public:
 
     QList<GitFileStatus> getStatus();
     QString getFileContent(const QString &filePath, bool staged); // Get original version from git
+    QString getFileContentAtRevision(const QString &filePath, const QString &revision);
     QString getWorkingFileContent(const QString &filePath);       // Get current file content
     QList<GitHunk> getHunks(const QString &filePath, bool staged);
     QList<GitHunk> getHunksForCommit(const QString &hash, const QString &filePath);

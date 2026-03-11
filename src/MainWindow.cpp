@@ -248,8 +248,10 @@ void MainWindow::showCommitDiff(const QString &hash) {
 }
 
 void MainWindow::showFileDiffInCommit(const QString &hash, const QString &filePath) {
-    QString diff = gitManager->getFileDiffInCommit(hash, filePath);
-    diffView->setUnifiedDiff(diff);
+    QString oldContent = gitManager->getFileContentAtRevision(filePath, hash + "^");
+    QString newContent = gitManager->getFileContentAtRevision(filePath, hash);
+    auto hunks = gitManager->getHunksForCommit(hash, filePath);
+    diffView->setDiff(oldContent, newContent, hunks);
 }
 
 void MainWindow::checkoutCommit(const QString &hash) {
