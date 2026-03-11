@@ -112,13 +112,23 @@ void CommitItemWidget::setupUi() {
 }
 
 void CommitItemWidget::enterEvent(QEnterEvent *event) {
-    QString tooltip = QString("<h3>%1</h3><p><b>Author:</b> %2<br><b>Date:</b> %3</p><hr>%4")
-                      .arg(m_commit.subject.toHtmlEscaped())
-                      .arg(m_commit.author.toHtmlEscaped())
-                      .arg(m_commit.date.toHtmlEscaped())
-                      .arg(m_commit.message.toHtmlEscaped().replace("\n", "<br>"));
+    // We use a simplified HTML representation for the tooltip because QToolTip has limited markdown support.
+    // However, we can use <div> and other basic tags to make it look good.
+    QString tooltip = QString(
+        "<div style='margin: 5px;'>"
+        "<b>%1</b><br/>"
+        "<span style='color: #888; font-size: 10px;'>%2 | %3</span>"
+        "<hr style='border: 0; border-top: 1px solid #444;'/>"
+        "<div style='white-space: pre-wrap;'>%4</div>"
+        "</div>"
+    )
+    .arg(m_commit.subject.toHtmlEscaped())
+    .arg(m_commit.author.toHtmlEscaped())
+    .arg(m_commit.date.toHtmlEscaped())
+    .arg(m_commit.message.toHtmlEscaped());
     
-    QToolTip::showText(QCursor::pos(), tooltip, this);
+    // Set a very long display time (e.g., 60 seconds)
+    QToolTip::showText(QCursor::pos(), tooltip, this, QRect(), 60000);
     QWidget::enterEvent(event);
 }
 
