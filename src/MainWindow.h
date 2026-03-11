@@ -4,7 +4,7 @@
 #include <QMainWindow>
 #include <QListWidget>
 #include <QPushButton>
-#include <QLineEdit>
+#include <QTextEdit>
 #include <QVBoxLayout>
 #include <QComboBox>
 #include <QSettings>
@@ -16,6 +16,7 @@ class MainWindow : public QMainWindow {
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
     void openFolder();
@@ -37,7 +38,7 @@ private:
     QListWidget *unstagedList;
     QListWidget *logList;
     DiffView *diffView;
-    QLineEdit *commitMessageEdit;
+    QTextEdit *commitMessageEdit;
     QComboBox *recentFoldersCombo;
     
     void setupUi();

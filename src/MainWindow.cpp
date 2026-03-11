@@ -6,6 +6,7 @@
 #include <QHeaderView>
 #include <QFileDialog>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     gitManager = new GitManager(this);
@@ -19,6 +20,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 MainWindow::~MainWindow() {
     saveSettings();
+}
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
+    if (obj == commitMessageEdit && event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_Return && (keyEvent->modifiers() & Qt::ControlModifier)) {
+            commitChanges();
+            return true;
+        }
+    }
+    return QMainWindow::eventFilter(obj, event);
 }
 
 void MainWindow::setupUi() {
@@ -39,22 +51,51 @@ void MainWindow::setupUi() {
     recentFoldersCombo->setPlaceholderText("Select a recent folder...");
     sidebarLayout->addWidget(recentFoldersCombo);
 
-    sidebarLayout->addWidget(new QLabel("STAGED CHANGES"));
+    // Sidebar Splitter for sections
+    QSplitter *sidebarSplitter = new QSplitter(Qt::Vertical);
+
+    // Staged Section
+    QWidget *stagedContainer = new QWidget();
+    QVBoxLayout *stagedLayout = new QVBoxLayout(stagedContainer);
+    stagedLayout->setContentsMargins(0, 5, 0, 5);
+    stagedLayout->addWidget(new QLabel("STAGED CHANGES"));
     stagedList = new QListWidget();
-    sidebarLayout->addWidget(stagedList);
+    stagedList->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    stagedLayout->addWidget(stagedList);
+    sidebarSplitter->addWidget(stagedContainer);
 
-    sidebarLayout->addWidget(new QLabel("CHANGES"));
+    // Unstaged Section
+    QWidget *unstagedContainer = new QWidget();
+    QVBoxLayout *unstagedLayout = new QVBoxLayout(unstagedContainer);
+    unstagedLayout->setContentsMargins(0, 5, 0, 5);
+    unstagedLayout->addWidget(new QLabel("CHANGES"));
     unstagedList = new QListWidget();
-    sidebarLayout->addWidget(unstagedList);
+    unstagedList->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    unstagedLayout->addWidget(unstagedList);
+    sidebarSplitter->addWidget(unstagedContainer);
 
-    sidebarLayout->addWidget(new QLabel("GIT LOG"));
+    // Log Section
+    QWidget *logContainer = new QWidget();
+    QVBoxLayout *logLayout = new QVBoxLayout(logContainer);
+    logLayout->setContentsMargins(0, 5, 0, 5);
+    logLayout->addWidget(new QLabel("GIT LOG"));
     logList = new QListWidget();
     logList->setSelectionMode(QAbstractItemView::NoSelection);
+    logList->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     logList->setStyleSheet("QListWidget::item { border-bottom: 1px solid #333; }");
-    sidebarLayout->addWidget(logList);
+    logLayout->addWidget(logList);
+    sidebarSplitter->addWidget(logContainer);
 
-    commitMessageEdit = new QLineEdit();
+    sidebarSplitter->setStretchFactor(0, 1);
+    sidebarSplitter->setStretchFactor(1, 1);
+    sidebarSplitter->setStretchFactor(2, 2);
+
+    sidebarLayout->addWidget(sidebarSplitter, 1);
+
+    commitMessageEdit = new QTextEdit();
     commitMessageEdit->setPlaceholderText("Message (Ctrl+Enter to commit)");
+    commitMessageEdit->setMaximumHeight(100);
+    commitMessageEdit->installEventFilter(this);
     sidebarLayout->addWidget(commitMessageEdit);
 
     QPushButton *commitBtn = new QPushButton("Commit");
@@ -236,7 +277,7 @@ void MainWindow::unstageSelected() {
 }
 
 void MainWindow::commitChanges() {
-    QString msg = commitMessageEdit->text();
+    QString msg = commitMessageEdit->toPlainText();
     if (msg.isEmpty()) {
         QMessageBox::warning(this, "Error", "Commit message cannot be empty");
         return;
