@@ -4,6 +4,7 @@
 #include <QSyntaxHighlighter>
 #include <QTextCharFormat>
 #include <QTextBlock>
+#include <QVector>
 
 DiffView::DiffView(QWidget *parent) : QWidget(parent) {
     QHBoxLayout *layout = new QHBoxLayout(this);
@@ -54,55 +55,94 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
         int prefix = 0;
         while (prefix < oldL.length() && prefix < newL.length() && oldL[prefix] == newL[prefix]) prefix++;
         int oldS = oldL.length() - 1, newS = newL.length() - 1;
-        while (oldS >= prefix && newS >= prefix && oldL[oldS] == newL[newS]) { oldS--; newS--; }
+        while (oldS >= prefix && newS >= prefix && oldL[oldS] == newL[oldS]) { oldS--; newS--; }
         QList<QPair<int, int>> oh, nh;
         if (oldS >= prefix) oh.append({prefix, oldS - prefix + 1});
         if (newS >= prefix) nh.append({prefix, newS - prefix + 1});
         return qMakePair(oh, nh);
     };
 
+    QColor dCol(255, 0, 0, 40), aCol(0, 255, 0, 40), pCol(45, 45, 45, 120);
+
     for (const auto &hunk : hunks) {
+        // Sync context before hunk
         while (leftIdx < hunk.oldStart - 1 && leftIdx < leftLines.size() && rightIdx < hunk.newStart - 1 && rightIdx < rightLines.size()) {
             leftDisplay.append({leftLines[leftIdx++], false});
             rightDisplay.append({rightLines[rightIdx++], false});
         }
 
-        QStringList hOld, hNew;
-        for (const QString &line : hunk.lines) {
-            if (line.startsWith("-")) hOld.append(line.mid(1));
-            else if (line.startsWith("+")) hNew.append(line.mid(1));
-        }
-
-        int maxL = qMax(hOld.size(), hNew.size());
-        QColor dCol(255, 0, 0, 40), aCol(0, 255, 0, 40), pCol(45, 45, 45, 120);
-
-        for (int i = 0; i < maxL; ++i) {
-            QList<QPair<int, int>> lW, rW;
-            bool isEdit = false;
-            if (i < hOld.size() && i < hNew.size()) {
-                if (hOld[i] != hNew[i]) {
-                    auto d = getIntraLineDiff(hOld[i], hNew[i]);
-                    lW = d.first; rW = d.second;
-                    isEdit = true;
+        int hIdx = 0;
+        while (hIdx < hunk.lines.size()) {
+            if (hunk.lines[hIdx].startsWith(" ")) {
+                if (leftIdx < leftLines.size()) leftDisplay.append({leftLines[leftIdx++], false});
+                if (rightIdx < rightLines.size()) rightDisplay.append({rightLines[rightIdx++], false});
+                hIdx++;
+            } else {
+                QStringList hOld, hNew;
+                while (hIdx < hunk.lines.size() && hunk.lines[hIdx].startsWith("-")) hOld.append(hunk.lines[hIdx++].mid(1));
+                while (hIdx < hunk.lines.size() && hunk.lines[hIdx].startsWith("+")) hNew.append(hunk.lines[hIdx++].mid(1));
+                
+                // Use LCS to align lines within the hunk for "line-perfect" comparison
+                int n = hOld.size();
+                int m = hNew.size();
+                QVector<QVector<int>> dp(n + 1, QVector<int>(m + 1, 0));
+                for (int i = 1; i <= n; ++i) {
+                    for (int j = 1; j <= m; ++j) {
+                        if (hOld[i-1] == hNew[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
+                        else dp[i][j] = qMax(dp[i-1][j], dp[i][j-1]);
+                    }
                 }
-            } else {
-                isEdit = true; // Pure addition or subtraction
-            }
 
-            if (i < hOld.size()) {
-                leftDisplay.append({hOld[i], false, isEdit ? dCol : Qt::transparent, lW});
-            } else {
-                leftDisplay.append({"", true, pCol});
-            }
+                QList<QPair<int, int>> alignment;
+                int i = n, j = m;
+                while (i > 0 || j > 0) {
+                    if (i > 0 && j > 0 && hOld[i-1] == hNew[j-1]) {
+                        alignment.prepend({--i, --j});
+                    } else if (j > 0 && (i == 0 || dp[i][j-1] >= dp[i-1][j])) {
+                        alignment.prepend({-1, --j}); // Insertion
+                    } else {
+                        alignment.prepend({--i, -1}); // Deletion
+                    }
+                }
 
-            if (i < hNew.size()) {
-                rightDisplay.append({hNew[i], false, isEdit ? aCol : Qt::transparent, rW});
-            } else {
-                rightDisplay.append({"", true, pCol});
+                for (const auto &pair : alignment) {
+                    int lI = pair.first;
+                    int rI = pair.second;
+                    QString lText = (lI != -1) ? hOld[lI] : "";
+                    QString rText = (rI != -1) ? hNew[rI] : "";
+                    bool hasL = (lI != -1);
+                    bool hasR = (rI != -1);
+                    
+                    // Only highlight if they are different AND both sides have content
+                    // If one side is a placeholder, the whole line background is handled by isPlaceholder check later or by different background color
+                    bool isDifferent = (hasL && hasR && lText != rText);
+                    
+                    QList<QPair<int, int>> lW, rW;
+                    if (hasL && hasR && isDifferent) {
+                        auto d = getIntraLineDiff(lText, rText);
+                        lW = d.first; rW = d.second;
+                    }
+
+                    if (hasL) {
+                        // Use dCol only if it's different or if it's a deletion (no matching R)
+                        QColor bg = (hasR && !isDifferent) ? Qt::transparent : dCol;
+                        leftDisplay.append({lText, false, bg, lW});
+                    } else {
+                        leftDisplay.append({"", true, pCol});
+                    }
+
+                    if (hasR) {
+                        // Use aCol only if it's different or if it's an addition (no matching L)
+                        QColor bg = (hasL && !isDifferent) ? Qt::transparent : aCol;
+                        rightDisplay.append({rText, false, bg, rW});
+                    } else {
+                        rightDisplay.append({"", true, pCol});
+                    }
+                }
+                leftIdx += hOld.size();
+                rightIdx += hNew.size();
             }
         }
-        leftIdx += hOld.size();
-        rightIdx += hNew.size();
     }
 
     while (leftIdx < leftLines.size() || rightIdx < rightLines.size()) {
@@ -112,8 +152,7 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
         rightDisplay.append({r, rightIdx > rightLines.size()});
     }
 
-    leftEdit->clear();
-    rightEdit->clear();
+    leftEdit->clear(); rightEdit->clear();
     QColor dW(255, 0, 0, 100), aW(0, 255, 0, 100);
 
     auto render = [](QTextEdit *ed, const QList<DisplayLine> &disp, QColor wCol) {
@@ -134,18 +173,12 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
                 s.cursor = wc;
                 sels.append(s);
             }
-            // Full Line Highlight
             if (!dl.isPlaceholder && dl.bgColor != Qt::transparent) {
-                QTextEdit::ExtraSelection lineSel;
-                lineSel.format.setBackground(dl.bgColor);
-                lineSel.format.setProperty(QTextFormat::FullWidthSelection, true);
-                
-                // CRITICAL: Ensure we only highlight the actual line, not the placeholder
-                QTextBlock block = ed->document()->findBlockByLineNumber(i);
-                if (block.isValid()) {
-                    lineSel.cursor = QTextCursor(block);
-                    sels.append(lineSel);
-                }
+                QTextEdit::ExtraSelection s;
+                s.format.setBackground(dl.bgColor);
+                s.format.setProperty(QTextFormat::FullWidthSelection, true);
+                s.cursor = QTextCursor(ed->document()->findBlockByLineNumber(i));
+                sels.append(s);
             }
             cur.insertBlock();
         }
