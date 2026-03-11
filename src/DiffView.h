@@ -3,17 +3,19 @@
 
 #include <QWidget>
 #include <QTextEdit>
+#include "GitManager.h"
 
 class DiffView : public QWidget {
     Q_OBJECT
 public:
     explicit DiffView(QWidget *parent = nullptr);
-    void setDiff(const QString &leftContent, const QString &rightContent);
+    void setDiff(const QString &leftContent, const QString &rightContent, const QList<GitHunk> &hunks);
     void clear();
 
 private:
     QTextEdit *leftEdit;
     QTextEdit *rightEdit;
+    void applyHighlights(const QList<GitHunk> &hunks);
 };
 
 #endif // DIFFVIEW_H

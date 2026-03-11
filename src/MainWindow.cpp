@@ -96,7 +96,8 @@ void MainWindow::onFileSelected(QListWidgetItem *item) {
     bool staged = item->data(Qt::UserRole).toBool();
     QString original = gitManager->getFileContent(item->text(), staged);
     QString working = gitManager->getWorkingFileContent(item->text());
-    diffView->setDiff(original, working);
+    auto hunks = gitManager->getHunks(item->text(), staged);
+    diffView->setDiff(original, working, hunks);
 }
 
 void MainWindow::stageSelected() {

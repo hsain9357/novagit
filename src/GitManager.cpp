@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QRegularExpression>
 
 GitManager::GitManager(QObject *parent) : QObject(parent) {
     m_repositoryPath = QDir::currentPath();
@@ -67,6 +68,41 @@ QString GitManager::getWorkingFileContent(const QString &filePath) {
         return QString::fromUtf8(file.readAll());
     }
     return QString();
+}
+
+QList<GitHunk> GitManager::getHunks(const QString &filePath, bool staged) {
+    QList<GitHunk> hunks;
+    QStringList args = {"diff", "-U0"};
+    if (staged) args << "--cached";
+    args << "--" << filePath;
+    QString output = runGitCommand(args);
+    if (output.isEmpty()) return hunks;
+
+    QStringList lines = output.split('\n');
+    GitHunk currentHunk;
+    bool inHunk = false;
+
+    for (const QString &line : lines) {
+        if (line.startsWith("@@")) {
+            if (inHunk) hunks.append(currentHunk);
+            inHunk = true;
+            currentHunk = GitHunk();
+            
+            // Format: @@ -oldStart,oldLines +newStart,newLines @@
+            QRegularExpression re("@@ -(\\d+)(?:,(\\d+))? \\+(\\d+)(?:,(\\d+))? @@");
+            QRegularExpressionMatch match = re.match(line);
+            if (match.hasMatch()) {
+                currentHunk.oldStart = match.captured(1).toInt();
+                currentHunk.oldLines = match.captured(2).isEmpty() ? 1 : match.captured(2).toInt();
+                currentHunk.newStart = match.captured(3).toInt();
+                currentHunk.newLines = match.captured(4).isEmpty() ? 1 : match.captured(4).toInt();
+            }
+        } else if (inHunk && (line.startsWith("+") || line.startsWith("-") || line.startsWith(" "))) {
+            currentHunk.lines.append(line);
+        }
+    }
+    if (inHunk) hunks.append(currentHunk);
+    return hunks;
 }
 
 QString GitManager::getDiff(const QString &filePath, bool staged) {

@@ -11,6 +11,12 @@ struct GitFileStatus {
     bool staged;
 };
 
+struct GitHunk {
+    int oldStart, oldLines;
+    int newStart, newLines;
+    QStringList lines;
+};
+
 class GitManager : public QObject {
     Q_OBJECT
 public:
@@ -22,6 +28,7 @@ public:
     QList<GitFileStatus> getStatus();
     QString getFileContent(const QString &filePath, bool staged); // Get original version from git
     QString getWorkingFileContent(const QString &filePath);       // Get current file content
+    QList<GitHunk> getHunks(const QString &filePath, bool staged);
     QString getDiff(const QString &filePath, bool staged);
     bool stageFile(const QString &filePath);
     bool unstageFile(const QString &filePath);
