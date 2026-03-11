@@ -5,6 +5,8 @@
 #include <QTextCharFormat>
 #include <QTextBlock>
 #include <QVector>
+#include <QPainter>
+#include <QPixmap>
 
 DiffView::DiffView(QWidget *parent) : QWidget(parent) {
     QHBoxLayout *layout = new QHBoxLayout(this);
@@ -42,6 +44,7 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
 
     struct DisplayLine {
         QString text;
+        int lineNumber = -1;
         bool isPlaceholder = false;
         QColor bgColor = Qt::transparent;
         QList<QPair<int, int>> wordHighlights;
@@ -62,20 +65,31 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
         return qMakePair(oh, nh);
     };
 
+    // VS Code inspired colors
     QColor dCol(255, 0, 0, 40), aCol(0, 255, 0, 40), pCol(45, 45, 45, 120);
 
     for (const auto &hunk : hunks) {
         // Sync context before hunk
         while (leftIdx < hunk.oldStart - 1 && leftIdx < leftLines.size() && rightIdx < hunk.newStart - 1 && rightIdx < rightLines.size()) {
-            leftDisplay.append({leftLines[leftIdx++], false});
-            rightDisplay.append({rightLines[rightIdx++], false});
+            leftDisplay.append({leftLines[leftIdx], leftIdx + 1, false});
+            rightDisplay.append({rightLines[rightIdx], rightIdx + 1, false});
+            leftIdx++; rightIdx++;
         }
 
         int hIdx = 0;
+        int currentLeft = hunk.oldStart - 1;
+        int currentRight = hunk.newStart - 1;
+
         while (hIdx < hunk.lines.size()) {
             if (hunk.lines[hIdx].startsWith(" ")) {
-                if (leftIdx < leftLines.size()) leftDisplay.append({leftLines[leftIdx++], false});
-                if (rightIdx < rightLines.size()) rightDisplay.append({rightLines[rightIdx++], false});
+                if (leftIdx < leftLines.size()) {
+                    leftDisplay.append({leftLines[leftIdx], leftIdx + 1, false});
+                    leftIdx++;
+                }
+                if (rightIdx < rightLines.size()) {
+                    rightDisplay.append({rightLines[rightIdx], rightIdx + 1, false});
+                    rightIdx++;
+                }
                 hIdx++;
             } else {
                 QStringList hOld, hNew;
@@ -105,6 +119,7 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
                     }
                 }
 
+                int lOffset = 0, rOffset = 0;
                 for (const auto &pair : alignment) {
                     int lI = pair.first;
                     int rI = pair.second;
@@ -113,8 +128,6 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
                     bool hasL = (lI != -1);
                     bool hasR = (rI != -1);
                     
-                    // Only highlight if they are different AND both sides have content
-                    // If one side is a placeholder, the whole line background is handled by isPlaceholder check later or by different background color
                     bool isDifferent = (hasL && hasR && lText != rText);
                     
                     QList<QPair<int, int>> lW, rW;
@@ -124,19 +137,17 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
                     }
 
                     if (hasL) {
-                        // Use dCol only if it's different or if it's a deletion (no matching R)
                         QColor bg = (hasR && !isDifferent) ? Qt::transparent : dCol;
-                        leftDisplay.append({lText, false, bg, lW});
+                        leftDisplay.append({lText, leftIdx + lI + 1, false, bg, lW});
                     } else {
-                        leftDisplay.append({"", true, pCol});
+                        leftDisplay.append({"", -1, true, pCol});
                     }
 
                     if (hasR) {
-                        // Use aCol only if it's different or if it's an addition (no matching L)
                         QColor bg = (hasL && !isDifferent) ? Qt::transparent : aCol;
-                        rightDisplay.append({rText, false, bg, rW});
+                        rightDisplay.append({rText, rightIdx + rI + 1, false, bg, rW});
                     } else {
-                        rightDisplay.append({"", true, pCol});
+                        rightDisplay.append({"", -1, true, pCol});
                     }
                 }
                 leftIdx += hOld.size();
@@ -146,10 +157,18 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
     }
 
     while (leftIdx < leftLines.size() || rightIdx < rightLines.size()) {
-        QString l = (leftIdx < leftLines.size()) ? leftLines[leftIdx++] : "";
-        QString r = (rightIdx < rightLines.size()) ? rightLines[rightIdx++] : "";
-        leftDisplay.append({l, leftIdx > leftLines.size()});
-        rightDisplay.append({r, rightIdx > rightLines.size()});
+        if (leftIdx < leftLines.size()) {
+            leftDisplay.append({leftLines[leftIdx], leftIdx + 1, false});
+            leftIdx++;
+        } else {
+            leftDisplay.append({"", -1, true});
+        }
+        if (rightIdx < rightLines.size()) {
+            rightDisplay.append({rightLines[rightIdx], rightIdx + 1, false});
+            rightIdx++;
+        } else {
+            rightDisplay.append({"", -1, true});
+        }
     }
 
     leftEdit->clear(); rightEdit->clear();
@@ -158,27 +177,56 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
     auto render = [](QTextEdit *ed, const QList<DisplayLine> &disp, QColor wCol) {
         QTextCursor cur(ed->document());
         QList<QTextEdit::ExtraSelection> sels;
+
+        // Create a diagonal pattern for placeholders like VS Code
+        QPixmap pix(8, 8);
+        pix.fill(Qt::transparent);
+        {
+            QPainter painter(&pix);
+            painter.setPen(QPen(QColor(128, 128, 128, 60), 1));
+            painter.drawLine(0, 8, 8, 0);
+        }
+        QBrush diagonalBrush(pix);
+
         for (int i = 0; i < disp.size(); ++i) {
             const auto &dl = disp[i];
-            QTextCharFormat fmt;
-            if (dl.isPlaceholder) fmt.setBackground(dl.bgColor);
+            
+            // Format for line number
+            QTextCharFormat numFmt;
+            numFmt.setForeground(QColor(100, 100, 100));
+            QString numStr = (dl.lineNumber != -1) ? QString::number(dl.lineNumber).rightJustified(4) + " " : "     ";
             int start = cur.position();
+            cur.insertText(numStr, numFmt);
+            
+            // Format for line text
+            QTextCharFormat fmt;
             cur.insertText(dl.text, fmt);
-            for (const auto &w : dl.wordHighlights) {
+
+            if (dl.isPlaceholder) {
+                // Background for placeholder
                 QTextEdit::ExtraSelection s;
-                s.format.setBackground(wCol);
-                QTextCursor wc = cur;
-                wc.setPosition(start + w.first);
-                wc.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, w.second);
-                s.cursor = wc;
-                sels.append(s);
-            }
-            if (!dl.isPlaceholder && dl.bgColor != Qt::transparent) {
-                QTextEdit::ExtraSelection s;
-                s.format.setBackground(dl.bgColor);
+                s.format.setBackground(diagonalBrush);
                 s.format.setProperty(QTextFormat::FullWidthSelection, true);
                 s.cursor = QTextCursor(ed->document()->findBlockByLineNumber(i));
                 sels.append(s);
+            } else {
+                for (const auto &w : dl.wordHighlights) {
+                    QTextEdit::ExtraSelection s;
+                    s.format.setBackground(wCol);
+                    QTextCursor wc = cur;
+                    // Add offset for line number prefix
+                    wc.setPosition(start + 5 + w.first);
+                    wc.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, w.second);
+                    s.cursor = wc;
+                    sels.append(s);
+                }
+                if (dl.bgColor != Qt::transparent) {
+                    QTextEdit::ExtraSelection s;
+                    s.format.setBackground(dl.bgColor);
+                    s.format.setProperty(QTextFormat::FullWidthSelection, true);
+                    s.cursor = QTextCursor(ed->document()->findBlockByLineNumber(i));
+                    sels.append(s);
+                }
             }
             cur.insertBlock();
         }
