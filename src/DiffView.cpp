@@ -120,12 +120,18 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
                 s.cursor = wc;
                 sels.append(s);
             }
+            // Full Line Highlight
             if (!dl.isPlaceholder && dl.bgColor != Qt::transparent) {
-                QTextEdit::ExtraSelection s;
-                s.format.setBackground(dl.bgColor);
-                s.format.setProperty(QTextFormat::FullWidthSelection, true);
-                s.cursor = QTextCursor(ed->document()->findBlockByLineNumber(i));
-                sels.append(s);
+                QTextEdit::ExtraSelection lineSel;
+                lineSel.format.setBackground(dl.bgColor);
+                lineSel.format.setProperty(QTextFormat::FullWidthSelection, true);
+                
+                // CRITICAL: Ensure we only highlight the actual line, not the placeholder
+                QTextBlock block = ed->document()->findBlockByLineNumber(i);
+                if (block.isValid()) {
+                    lineSel.cursor = QTextCursor(block);
+                    sels.append(lineSel);
+                }
             }
             cur.insertBlock();
         }
