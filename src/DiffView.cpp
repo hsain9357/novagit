@@ -78,14 +78,28 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
 
         for (int i = 0; i < maxL; ++i) {
             QList<QPair<int, int>> lW, rW;
+            bool isEdit = false;
             if (i < hOld.size() && i < hNew.size()) {
-                auto d = getIntraLineDiff(hOld[i], hNew[i]);
-                lW = d.first; rW = d.second;
+                if (hOld[i] != hNew[i]) {
+                    auto d = getIntraLineDiff(hOld[i], hNew[i]);
+                    lW = d.first; rW = d.second;
+                    isEdit = true;
+                }
+            } else {
+                isEdit = true; // Pure addition or subtraction
             }
-            if (i < hOld.size()) leftDisplay.append({hOld[i], false, dCol, lW});
-            else leftDisplay.append({"", true, pCol});
-            if (i < hNew.size()) rightDisplay.append({hNew[i], false, aCol, rW});
-            else rightDisplay.append({"", true, pCol});
+
+            if (i < hOld.size()) {
+                leftDisplay.append({hOld[i], false, isEdit ? dCol : Qt::transparent, lW});
+            } else {
+                leftDisplay.append({"", true, pCol});
+            }
+
+            if (i < hNew.size()) {
+                rightDisplay.append({hNew[i], false, isEdit ? aCol : Qt::transparent, rW});
+            } else {
+                rightDisplay.append({"", true, pCol});
+            }
         }
         leftIdx += hOld.size();
         rightIdx += hNew.size();
