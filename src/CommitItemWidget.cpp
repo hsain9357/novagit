@@ -112,8 +112,6 @@ void CommitItemWidget::setupUi() {
 }
 
 void CommitItemWidget::enterEvent(QEnterEvent *event) {
-    // We use a simplified HTML representation for the tooltip because QToolTip has limited markdown support.
-    // However, we can use <div> and other basic tags to make it look good.
     QString tooltip = QString(
         "<div style='margin: 5px;'>"
         "<b>%1</b><br/>"
@@ -127,8 +125,7 @@ void CommitItemWidget::enterEvent(QEnterEvent *event) {
     .arg(m_commit.date.toHtmlEscaped())
     .arg(m_commit.message.toHtmlEscaped());
     
-    // Set a very long display time (e.g., 60 seconds)
-    QToolTip::showText(QCursor::pos(), tooltip, this, QRect(), 60000);
+    setToolTip(tooltip);
     QWidget::enterEvent(event);
 }
 
