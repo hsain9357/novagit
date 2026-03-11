@@ -46,25 +46,32 @@ void MainWindow::setupUi() {
 
     // Left Sidebar
     QWidget *sidebar = new QWidget();
-    sidebar->setFixedWidth(300);
+    sidebar->setFixedWidth(320);
+    sidebar->setStyleSheet("QWidget { background-color: #252526; }");
     QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebar);
+    sidebarLayout->setContentsMargins(10, 10, 10, 10);
+    sidebarLayout->setSpacing(8);
 
     QPushButton *openBtn = new QPushButton("Open Folder");
+    openBtn->setObjectName("secondaryBtn");
     sidebarLayout->addWidget(openBtn);
 
-    sidebarLayout->addWidget(new QLabel("RECENT FOLDERS"));
+    sidebarLayout->addWidget(new QLabel("RECENT REPOSITORIES"));
     recentFoldersCombo = new QComboBox();
-    recentFoldersCombo->setPlaceholderText("Select a recent folder...");
+    recentFoldersCombo->setPlaceholderText("Select repository...");
     sidebarLayout->addWidget(recentFoldersCombo);
 
     // Sidebar Splitter for sections
     QSplitter *sidebarSplitter = new QSplitter(Qt::Vertical);
+    sidebarSplitter->setStyleSheet("QSplitter::handle { background: transparent; }");
 
     // Staged Section
     QWidget *stagedContainer = new QWidget();
     QVBoxLayout *stagedLayout = new QVBoxLayout(stagedContainer);
-    stagedLayout->setContentsMargins(0, 5, 0, 5);
-    stagedLayout->addWidget(new QLabel("STAGED CHANGES"));
+    stagedLayout->setContentsMargins(0, 0, 0, 0);
+    stagedLayout->setSpacing(4);
+    QLabel *stagedLabel = new QLabel("STAGED CHANGES");
+    stagedLayout->addWidget(stagedLabel);
     stagedList = new QListWidget();
     stagedList->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     stagedLayout->addWidget(stagedList);
@@ -73,8 +80,10 @@ void MainWindow::setupUi() {
     // Unstaged Section
     QWidget *unstagedContainer = new QWidget();
     QVBoxLayout *unstagedLayout = new QVBoxLayout(unstagedContainer);
-    unstagedLayout->setContentsMargins(0, 5, 0, 5);
-    unstagedLayout->addWidget(new QLabel("CHANGES"));
+    unstagedLayout->setContentsMargins(0, 0, 0, 0);
+    unstagedLayout->setSpacing(4);
+    QLabel *unstagedLabel = new QLabel("CHANGES");
+    unstagedLayout->addWidget(unstagedLabel);
     unstagedList = new QListWidget();
     unstagedList->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     unstagedLayout->addWidget(unstagedList);
@@ -83,12 +92,14 @@ void MainWindow::setupUi() {
     // Log Section
     QWidget *logContainer = new QWidget();
     QVBoxLayout *logLayout = new QVBoxLayout(logContainer);
-    logLayout->setContentsMargins(0, 5, 0, 5);
-    logLayout->addWidget(new QLabel("GIT LOG"));
+    logLayout->setContentsMargins(0, 0, 0, 0);
+    logLayout->setSpacing(4);
+    QLabel *logLabel = new QLabel("GIT HISTORY");
+    logLayout->addWidget(logLabel);
     logList = new QListWidget();
     logList->setSelectionMode(QAbstractItemView::NoSelection);
     logList->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    logList->setStyleSheet("QListWidget::item { border-bottom: 1px solid #333; }");
+    logList->setStyleSheet("QListWidget { background-color: #1e1e1e; } QListWidget::item { border-bottom: 1px solid #2d2d2d; }");
     logLayout->addWidget(logList);
     sidebarSplitter->addWidget(logContainer);
 
@@ -99,14 +110,16 @@ void MainWindow::setupUi() {
     sidebarLayout->addWidget(sidebarSplitter, 1);
 
     commitMessageEdit = new QTextEdit();
-    commitMessageEdit->setPlaceholderText("Message (Ctrl+Enter to commit)");
-    commitMessageEdit->setMaximumHeight(100);
+    commitMessageEdit->setPlaceholderText("Commit message (Ctrl+Enter to commit)");
+    commitMessageEdit->setMaximumHeight(80);
     commitMessageEdit->installEventFilter(this);
     sidebarLayout->addWidget(commitMessageEdit);
 
     QHBoxLayout *commitBtnLayout = new QHBoxLayout();
-    generateBtn = new QPushButton("Generate");
+    generateBtn = new QPushButton("Generate Message");
+    generateBtn->setObjectName("secondaryBtn");
     QPushButton *commitBtn = new QPushButton("Commit");
+    commitBtn->setObjectName("primaryBtn");
     commitBtnLayout->addWidget(generateBtn);
     commitBtnLayout->addWidget(commitBtn);
     sidebarLayout->addLayout(commitBtnLayout);
