@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 COMPONENTS Widgets Core REQUIRED)
+find_package(Qt6 COMPONENTS Widgets Core Network REQUIRED)
 
 add_executable(GitGUIApp
     src/main.cpp
@@ -21,9 +21,11 @@ add_executable(GitGUIApp
     src/SyntaxHighlighter.h
     src/CommitItemWidget.cpp
     src/CommitItemWidget.h
+    src/AIHandler.cpp
+    src/AIHandler.h
 )
 
-target_link_libraries(GitGUIApp PRIVATE Qt6::Widgets Qt6::Core)
+target_link_libraries(GitGUIApp PRIVATE Qt6::Widgets Qt6::Core Qt6::Network)
 
 # Generate install and uninstall scripts in the build folder
 set(INSTALL_SCRIPT "${CMAKE_BINARY_DIR}/install.sh")

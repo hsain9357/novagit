@@ -7,9 +7,13 @@
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QInputDialog>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     gitManager = new GitManager(this);
+    aiHandler = new AIHandler(this);
+    connect(aiHandler, &AIHandler::messageGenerated, this, &MainWindow::onAIMessageGenerated);
+    connect(aiHandler, &AIHandler::errorOccurred, this, &MainWindow::onAIError);
     setupUi();
     loadSettings();
     if (!gitManager->repositoryPath().isEmpty()) {
@@ -98,8 +102,12 @@ void MainWindow::setupUi() {
     commitMessageEdit->installEventFilter(this);
     sidebarLayout->addWidget(commitMessageEdit);
 
+    QHBoxLayout *commitBtnLayout = new QHBoxLayout();
+    generateBtn = new QPushButton("Generate");
     QPushButton *commitBtn = new QPushButton("Commit");
-    sidebarLayout->addWidget(commitBtn);
+    commitBtnLayout->addWidget(generateBtn);
+    commitBtnLayout->addWidget(commitBtn);
+    sidebarLayout->addLayout(commitBtnLayout);
 
     QHBoxLayout *syncLayout = new QHBoxLayout();
     QPushButton *pullBtn = new QPushButton("Pull");
@@ -125,6 +133,7 @@ void MainWindow::setupUi() {
     connect(stagedList, &QListWidget::itemClicked, this, &MainWindow::onFileSelected);
     connect(unstagedList, &QListWidget::itemDoubleClicked, this, &MainWindow::stageSelected);
     connect(stagedList, &QListWidget::itemDoubleClicked, this, &MainWindow::unstageSelected);
+    connect(generateBtn, &QPushButton::clicked, this, &MainWindow::generateAICommitMessage);
     connect(commitBtn, &QPushButton::clicked, this, &MainWindow::commitChanges);
     connect(pullBtn, &QPushButton::clicked, this, &MainWindow::pullChanges);
     connect(pushBtn, &QPushButton::clicked, this, &MainWindow::pushChanges);
@@ -285,6 +294,49 @@ void MainWindow::commitChanges() {
     gitManager->commit(msg);
     commitMessageEdit->clear();
     refreshStatus();
+}
+
+void MainWindow::generateAICommitMessage() {
+    QString diff = gitManager->getStagedDiff();
+    if (diff.isEmpty()) {
+        QMessageBox::warning(this, "No Changes", "No staged changes found. Please stage files first.");
+        return;
+    }
+
+    generateBtn->setEnabled(false);
+    generateBtn->setText("Generating...");
+    aiHandler->generateCommitMessage(diff);
+}
+
+void MainWindow::onAIMessageGenerated(const QString &message) {
+    commitMessageEdit->setPlainText(message);
+    generateBtn->setEnabled(true);
+    generateBtn->setText("Generate");
+}
+
+void MainWindow::onAIError(const QString &error) {
+    generateBtn->setEnabled(true);
+    generateBtn->setText("Generate");
+
+    if (error == "API Key required") {
+        bool ok;
+        QString key = QInputDialog::getText(this, "Gemini API Key",
+                                            "Enter your Gemini API key:", QLineEdit::Normal,
+                                            "", &ok);
+        if (ok && !key.isEmpty()) {
+            // Re-call the save logic in AIHandler
+            // Actually I should expose a method for this
+            // For now let's just use the file directly or add a method to AIHandler
+            QFile file(QDir::homePath() + "/.gemini_git_key");
+            if (file.open(QFile::WriteOnly | QFile::Text)) {
+                file.write(key.toUtf8());
+                file.close();
+                generateAICommitMessage(); // Retry
+            }
+        }
+    } else {
+        QMessageBox::critical(this, "AI Error", error);
+    }
 }
 
 void MainWindow::pushChanges() {

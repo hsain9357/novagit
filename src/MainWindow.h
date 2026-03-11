@@ -10,6 +10,7 @@
 #include <QSettings>
 #include "GitManager.h"
 #include "DiffView.h"
+#include "AIHandler.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -26,6 +27,9 @@ private slots:
     void onFileSelected(QListWidgetItem *item);
     void checkoutCommit(const QString &hash);
     void resetCommit(const QString &hash, bool hard);
+    void generateAICommitMessage();
+    void onAIMessageGenerated(const QString &message);
+    void onAIError(const QString &error);
     void stageSelected();
     void unstageSelected();
     void commitChanges();
@@ -39,7 +43,9 @@ private:
     QListWidget *logList;
     DiffView *diffView;
     QTextEdit *commitMessageEdit;
+    QPushButton *generateBtn;
     QComboBox *recentFoldersCombo;
+    AIHandler *aiHandler;
     
     void setupUi();
     void loadSettings();

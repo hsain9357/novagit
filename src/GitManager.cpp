@@ -112,6 +112,10 @@ QString GitManager::getDiff(const QString &filePath, bool staged) {
     return runGitCommand(args);
 }
 
+QString GitManager::getStagedDiff() {
+    return runGitCommand({"diff", "--cached"});
+}
+
 bool GitManager::stageFile(const QString &filePath) {
     runGitCommand({"add", filePath});
     return true;
