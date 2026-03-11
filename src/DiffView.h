@@ -15,7 +15,7 @@ public:
 private:
     QTextEdit *leftEdit;
     QTextEdit *rightEdit;
-    void applyHighlights(const QList<GitHunk> &hunks);
+    void applyDiffAlignment(const QString &leftContent, const QString &rightContent, const QList<GitHunk> &hunks);
 };
 
 #endif // DIFFVIEW_H

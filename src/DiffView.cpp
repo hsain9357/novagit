@@ -34,54 +34,98 @@ DiffView::DiffView(QWidget *parent) : QWidget(parent) {
 }
 
 void DiffView::setDiff(const QString &leftContent, const QString &rightContent, const QList<GitHunk> &hunks) {
-    leftEdit->setPlainText(leftContent);
-    rightEdit->setPlainText(rightContent);
-    applyHighlights(hunks);
+    applyDiffAlignment(leftContent, rightContent, hunks);
 }
 
-void DiffView::applyHighlights(const QList<GitHunk> &hunks) {
-    QList<QTextEdit::ExtraSelection> leftSelections;
-    QList<QTextEdit::ExtraSelection> rightSelections;
+void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rightContent, const QList<GitHunk> &hunks) {
+    QStringList leftLines = leftContent.split('\n');
+    QStringList rightLines = rightContent.split('\n');
 
-    QColor delColor(255, 0, 0, 40);
-    QColor addColor(0, 255, 0, 40);
+    struct DisplayLine {
+        QString text;
+        bool isPlaceholder = false;
+        QColor bgColor = Qt::transparent;
+    };
+
+    QList<DisplayLine> leftDisplay, rightDisplay;
+    int leftIdx = 0, rightIdx = 0;
 
     for (const auto &hunk : hunks) {
-        // Highlight deletions on left
-        int currentOld = hunk.oldStart;
-        int currentNew = hunk.newStart;
-        
+        // Fill unchanged lines before hunk
+        while (leftIdx < hunk.oldStart - 1 && leftIdx < leftLines.size() && rightIdx < rightLines.size()) {
+            leftDisplay.append({leftLines[leftIdx], false});
+            rightDisplay.append({rightLines[rightIdx], false});
+            leftIdx++;
+            rightIdx++;
+        }
+
+        // Process hunk
+        QStringList hunkOld, hunkNew;
         for (const QString &line : hunk.lines) {
-            if (line.startsWith("-")) {
-                QTextEdit::ExtraSelection sel;
-                sel.format.setBackground(delColor);
-                sel.format.setProperty(QTextFormat::FullWidthSelection, true);
-                
-                QTextBlock block = leftEdit->document()->findBlockByLineNumber(currentOld - 1);
-                if (block.isValid()) {
-                    sel.cursor = QTextCursor(block);
-                    leftSelections.append(sel);
-                }
-                currentOld++;
-            } else if (line.startsWith("+")) {
-                QTextEdit::ExtraSelection sel;
-                sel.format.setBackground(addColor);
-                sel.format.setProperty(QTextFormat::FullWidthSelection, true);
-                
-                QTextBlock block = rightEdit->document()->findBlockByLineNumber(currentNew - 1);
-                if (block.isValid()) {
-                    sel.cursor = QTextCursor(block);
-                    rightSelections.append(sel);
-                }
-                currentNew++;
+            if (line.startsWith("-")) hunkOld.append(line.mid(1));
+            else if (line.startsWith("+")) hunkNew.append(line.mid(1));
+            // Context lines (' ') are handled by the 'before hunk' loop or skipped in -U0
+        }
+
+        int maxLen = qMax(hunkOld.size(), hunkNew.size());
+        QColor delColor(255, 0, 0, 40);
+        QColor addColor(0, 255, 0, 40);
+
+        for (int i = 0; i < maxLen; ++i) {
+            if (i < hunkOld.size()) {
+                leftDisplay.append({hunkOld[i], false, delColor});
+                leftIdx++;
             } else {
-                currentOld++;
-                currentNew++;
+                leftDisplay.append({"", true, QColor(45, 45, 45, 100)});
+            }
+
+            if (i < hunkNew.size()) {
+                rightDisplay.append({hunkNew[i], false, addColor});
+                rightIdx++;
+            } else {
+                rightDisplay.append({"", true, QColor(45, 45, 45, 100)});
             }
         }
     }
-    leftEdit->setExtraSelections(leftSelections);
-    rightEdit->setExtraSelections(rightSelections);
+
+    // Fill remaining lines
+    while (leftIdx < leftLines.size() || rightIdx < rightLines.size()) {
+        QString lText = (leftIdx < leftLines.size()) ? leftLines[leftIdx++] : "";
+        QString rText = (rightIdx < rightLines.size()) ? rightLines[rightIdx++] : "";
+        leftDisplay.append({lText, leftIdx > leftLines.size()});
+        rightDisplay.append({rText, rightIdx > rightLines.size()});
+    }
+
+    // Render
+    leftEdit->clear();
+    rightEdit->clear();
+
+    auto render = [](QTextEdit *edit, const QList<DisplayLine> &display) {
+        QTextCursor cursor(edit->document());
+        QList<QTextEdit::ExtraSelection> selections;
+
+        for (int i = 0; i < display.size(); ++i) {
+            const auto &dl = display[i];
+            QTextCharFormat format;
+            if (dl.isPlaceholder) {
+                format.setBackground(dl.bgColor);
+            }
+            cursor.insertText(dl.text, format);
+
+            if (!dl.isPlaceholder && dl.bgColor != Qt::transparent) {
+                QTextEdit::ExtraSelection sel;
+                sel.format.setBackground(dl.bgColor);
+                sel.format.setProperty(QTextFormat::FullWidthSelection, true);
+                sel.cursor = QTextCursor(edit->document()->findBlockByLineNumber(i));
+                selections.append(sel);
+            }
+            cursor.insertBlock();
+        }
+        edit->setExtraSelections(selections);
+    };
+
+    render(leftEdit, leftDisplay);
+    render(rightEdit, rightDisplay);
 }
 
 void DiffView::clear() {
