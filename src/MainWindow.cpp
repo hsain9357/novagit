@@ -9,6 +9,8 @@
 #include <QKeyEvent>
 #include <QInputDialog>
 
+#include <QFileInfo>
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     gitManager = new GitManager(this);
     aiHandler = new AIHandler(this);
@@ -117,11 +119,24 @@ void MainWindow::setupUi() {
     sidebarLayout->addLayout(syncLayout);
 
     // Right Content
+    QWidget *rightContainer = new QWidget();
+    QVBoxLayout *rightLayout = new QVBoxLayout(rightContainer);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+    rightLayout->setSpacing(0);
+
+    diffTabBar = new QTabBar();
+    diffTabBar->setTabsClosable(true);
+    diffTabBar->setMovable(true);
+    diffTabBar->setStyleSheet("QTabBar::tab { background: #2d2d2d; color: #aaa; padding: 8px 12px; border: 1px solid #1e1e1e; }"
+                              "QTabBar::tab:selected { background: #1e1e1e; color: #fff; border-bottom: 2px solid #007acc; }");
+    rightLayout->addWidget(diffTabBar);
+
     diffView = new DiffView();
+    rightLayout->addWidget(diffView);
 
     QSplitter *splitter = new QSplitter(Qt::Horizontal);
     splitter->addWidget(sidebar);
-    splitter->addWidget(diffView);
+    splitter->addWidget(rightContainer);
     splitter->setStretchFactor(1, 1);
 
     mainLayout->addWidget(splitter);
@@ -129,6 +144,8 @@ void MainWindow::setupUi() {
     // Connect signals
     connect(openBtn, &QPushButton::clicked, this, &MainWindow::openFolder);
     connect(recentFoldersCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onRecentFolderSelected);
+    connect(diffTabBar, &QTabBar::currentChanged, this, &MainWindow::onTabChanged);
+    connect(diffTabBar, &QTabBar::tabCloseRequested, this, &MainWindow::closeTab);
     connect(unstagedList, &QListWidget::itemClicked, this, &MainWindow::onFileSelected);
     connect(stagedList, &QListWidget::itemClicked, this, &MainWindow::onFileSelected);
     connect(unstagedList, &QListWidget::itemDoubleClicked, this, &MainWindow::stageSelected);
@@ -234,7 +251,7 @@ void MainWindow::refreshLog() {
         
         connect(widget, &CommitItemWidget::checkoutRequested, this, &MainWindow::checkoutCommit);
         connect(widget, &CommitItemWidget::resetRequested, this, &MainWindow::resetCommit);
-        connect(widget, &CommitItemWidget::commitSelected, this, &MainWindow::showCommitDiff);
+        // connect(widget, &CommitItemWidget::commitSelected, this, &MainWindow::showCommitDiff); // Disable auto-diff
         connect(widget, &CommitItemWidget::fileSelectedInCommit, this, &MainWindow::showFileDiffInCommit);
         connect(widget, &CommitItemWidget::sizeChanged, [item, widget]() {
             item->setSizeHint(widget->sizeHint());
@@ -248,10 +265,7 @@ void MainWindow::showCommitDiff(const QString &hash) {
 }
 
 void MainWindow::showFileDiffInCommit(const QString &hash, const QString &filePath) {
-    QString oldContent = gitManager->getFileContentAtRevision(filePath, hash + "^");
-    QString newContent = gitManager->getFileContentAtRevision(filePath, hash);
-    auto hunks = gitManager->getHunksForCommit(hash, filePath);
-    diffView->setDiff(oldContent, newContent, hunks);
+    addOrActivateTab(filePath, hash, false);
 }
 
 void MainWindow::checkoutCommit(const QString &hash) {
@@ -278,10 +292,7 @@ void MainWindow::resetCommit(const QString &hash, bool hard) {
 
 void MainWindow::onFileSelected(QListWidgetItem *item) {
     bool staged = item->data(Qt::UserRole).toBool();
-    QString original = gitManager->getFileContent(item->text(), staged);
-    QString working = gitManager->getWorkingFileContent(item->text());
-    auto hunks = gitManager->getHunks(item->text(), staged);
-    diffView->setDiff(original, working, hunks);
+    addOrActivateTab(item->text(), "", staged);
 }
 
 void MainWindow::stageSelected() {
@@ -369,4 +380,52 @@ void MainWindow::pushChanges() {
 void MainWindow::pullChanges() {
     gitManager->pull();
     refreshStatus();
+}
+
+void MainWindow::addOrActivateTab(const QString &filePath, const QString &hash, bool staged) {
+    for (int i = 0; i < openTabs.size(); ++i) {
+        if (openTabs[i].filePath == filePath && openTabs[i].hash == hash && openTabs[i].staged == staged) {
+            diffTabBar->setCurrentIndex(i);
+            onTabChanged(i);
+            return;
+        }
+    }
+
+    TabInfo info = {filePath, hash, staged};
+    openTabs.append(info);
+    QString label = QFileInfo(filePath).fileName();
+    if (!hash.isEmpty()) label += " (" + hash.left(7) + ")";
+    int index = diffTabBar->addTab(label);
+    diffTabBar->setTabToolTip(index, filePath);
+    diffTabBar->setCurrentIndex(index);
+    onTabChanged(index);
+}
+
+void MainWindow::onTabChanged(int index) {
+    if (index < 0 || index >= openTabs.size()) {
+        diffView->clear();
+        return;
+    }
+
+    const auto &info = openTabs[index];
+    if (info.hash.isEmpty()) {
+        QString original = gitManager->getFileContent(info.filePath, info.staged);
+        QString working = gitManager->getWorkingFileContent(info.filePath);
+        auto hunks = gitManager->getHunks(info.filePath, info.staged);
+        diffView->setDiff(original, working, hunks);
+    } else {
+        QString oldContent = gitManager->getFileContentAtRevision(info.filePath, info.hash + "^");
+        QString newContent = gitManager->getFileContentAtRevision(info.filePath, info.hash);
+        auto hunks = gitManager->getHunksForCommit(info.hash, info.filePath);
+        diffView->setDiff(oldContent, newContent, hunks);
+    }
+}
+
+void MainWindow::closeTab(int index) {
+    if (index < 0 || index >= openTabs.size()) return;
+    openTabs.removeAt(index);
+    diffTabBar->removeTab(index);
+    if (openTabs.isEmpty()) {
+        diffView->clear();
+    }
 }

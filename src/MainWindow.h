@@ -8,6 +8,7 @@
 #include <QVBoxLayout>
 #include <QComboBox>
 #include <QSettings>
+#include <QTabBar>
 #include "GitManager.h"
 #include "DiffView.h"
 #include "AIHandler.h"
@@ -37,8 +38,18 @@ private slots:
     void commitChanges();
     void pushChanges();
     void pullChanges();
+    void onTabChanged(int index);
+    void closeTab(int index);
 
 private:
+    struct TabInfo {
+        QString filePath;
+        QString hash; // Empty for working/staged
+        bool staged;
+    };
+    QList<TabInfo> openTabs;
+    QTabBar *diffTabBar;
+
     GitManager *gitManager;
     QListWidget *stagedList;
     QListWidget *unstagedList;
@@ -53,6 +64,7 @@ private:
     void loadSettings();
     void saveSettings();
     void updateRecentFolders(const QString &path);
+    void addOrActivateTab(const QString &filePath, const QString &hash, bool staged);
 };
 
 #endif // MAINWINDOW_H
