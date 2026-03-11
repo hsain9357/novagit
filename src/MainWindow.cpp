@@ -235,6 +235,7 @@ void MainWindow::refreshLog() {
         connect(widget, &CommitItemWidget::checkoutRequested, this, &MainWindow::checkoutCommit);
         connect(widget, &CommitItemWidget::resetRequested, this, &MainWindow::resetCommit);
         connect(widget, &CommitItemWidget::commitSelected, this, &MainWindow::showCommitDiff);
+        connect(widget, &CommitItemWidget::fileSelectedInCommit, this, &MainWindow::showFileDiffInCommit);
         connect(widget, &CommitItemWidget::sizeChanged, [item, widget]() {
             item->setSizeHint(widget->sizeHint());
         });
@@ -243,6 +244,11 @@ void MainWindow::refreshLog() {
 
 void MainWindow::showCommitDiff(const QString &hash) {
     QString diff = gitManager->getCommitDiff(hash);
+    diffView->setUnifiedDiff(diff);
+}
+
+void MainWindow::showFileDiffInCommit(const QString &hash, const QString &filePath) {
+    QString diff = gitManager->getFileDiffInCommit(hash, filePath);
     diffView->setUnifiedDiff(diff);
 }
 

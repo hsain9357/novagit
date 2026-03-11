@@ -23,6 +23,7 @@ struct GitCommit {
     QString date;
     QString message;
     QString subject;
+    QStringList changedFiles;
 };
 
 class GitManager : public QObject {
@@ -37,9 +38,12 @@ public:
     QString getFileContent(const QString &filePath, bool staged); // Get original version from git
     QString getWorkingFileContent(const QString &filePath);       // Get current file content
     QList<GitHunk> getHunks(const QString &filePath, bool staged);
+    QList<GitHunk> getHunksForCommit(const QString &hash, const QString &filePath);
     QString getDiff(const QString &filePath, bool staged);
     QString getStagedDiff();
     QString getCommitDiff(const QString &hash); // New method
+    QString getFileDiffInCommit(const QString &hash, const QString &filePath);
+    QStringList getChangedFiles(const QString &hash);
     bool stageFile(const QString &filePath);
     bool unstageFile(const QString &filePath);
     bool stageAll();

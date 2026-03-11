@@ -71,6 +71,24 @@ void CommitItemWidget::setupUi() {
         detailsLayout->addWidget(m_messageLabel);
     }
 
+    if (!m_commit.changedFiles.isEmpty()) {
+        QLabel *filesHeader = new QLabel("Files:");
+        filesHeader->setStyleSheet("color: #888; font-weight: bold; margin-top: 5px;");
+        detailsLayout->addWidget(filesHeader);
+
+        for (const QString &file : m_commit.changedFiles) {
+            QPushButton *fileBtn = new QPushButton(file);
+            fileBtn->setFlat(true);
+            fileBtn->setCursor(Qt::PointingHandCursor);
+            fileBtn->setStyleSheet("QPushButton { color: #4daafc; text-align: left; padding: 2px; border: none; } "
+                                 "QPushButton:hover { text-decoration: underline; background-color: #333; }");
+            connect(fileBtn, &QPushButton::clicked, [this, file]() {
+                emit fileSelectedInCommit(m_commit.hash, file);
+            });
+            detailsLayout->addWidget(fileBtn);
+        }
+    }
+
     m_checkoutBtn = new QPushButton("Checkout");
     m_checkoutBtn->setCursor(Qt::PointingHandCursor);
     connect(m_checkoutBtn, &QPushButton::clicked, [this]() {

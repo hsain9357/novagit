@@ -121,6 +121,15 @@ QString GitManager::getCommitDiff(const QString &hash) {
     return runGitCommand({"show", hash, "--format="}); // --format= removes the commit message header
 }
 
+QString GitManager::getFileDiffInCommit(const QString &hash, const QString &filePath) {
+    return runGitCommand({"show", hash, "--format=", "--", filePath});
+}
+
+QStringList GitManager::getChangedFiles(const QString &hash) {
+    QString output = runGitCommand({"show", "--format=", "--name-only", hash});
+    return output.split('\n', Qt::SkipEmptyParts);
+}
+
 bool GitManager::stageFile(const QString &filePath) {
     runGitCommand({"add", filePath});
     return true;
@@ -174,6 +183,7 @@ QList<GitCommit> GitManager::getLog(int limit) {
             if (parts.size() >= 5) {
                 commit.message = parts[4].trimmed();
             }
+            commit.changedFiles = getChangedFiles(commit.hash);
             commits.append(commit);
         }
     }

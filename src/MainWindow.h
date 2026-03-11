@@ -26,6 +26,7 @@ private slots:
     void refreshLog();
     void onFileSelected(QListWidgetItem *item);
     void showCommitDiff(const QString &hash);
+    void showFileDiffInCommit(const QString &hash, const QString &filePath);
     void checkoutCommit(const QString &hash);
     void resetCommit(const QString &hash, bool hard);
     void generateAICommitMessage();

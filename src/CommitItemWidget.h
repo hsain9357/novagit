@@ -16,6 +16,7 @@ signals:
     void checkoutRequested(const QString &hash);
     void resetRequested(const QString &hash, bool hard);
     void commitSelected(const QString &hash);
+    void fileSelectedInCommit(const QString &hash, const QString &filePath);
     void sizeChanged();
 
 protected:
