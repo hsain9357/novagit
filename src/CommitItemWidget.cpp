@@ -5,6 +5,9 @@
 #include <QClipboard>
 #include <QApplication>
 #include <QToolTip>
+#include <QDialog>
+#include <QTextEdit>
+#include <QTimer>
 
 CommitItemWidget::CommitItemWidget(const GitCommit &commit, QWidget *parent)
     : QWidget(parent), m_commit(commit) {
@@ -112,20 +115,53 @@ void CommitItemWidget::setupUi() {
 }
 
 void CommitItemWidget::enterEvent(QEnterEvent *event) {
-    QString tooltip = QString(
-        "<div style='margin: 5px;'>"
-        "<b>%1</b><br/>"
-        "<span style='color: #888; font-size: 10px;'>%2 | %3</span>"
-        "<hr style='border: 0; border-top: 1px solid #444;'/>"
-        "<div style='white-space: pre-wrap;'>%4</div>"
-        "</div>"
-    )
-    .arg(m_commit.subject.toHtmlEscaped())
-    .arg(m_commit.author.toHtmlEscaped())
-    .arg(m_commit.date.toHtmlEscaped())
-    .arg(m_commit.message.toHtmlEscaped());
-    
-    setToolTip(tooltip);
+    QTimer::singleShot(500, this, [this]() {
+        if (underMouse()) {
+            QDialog *dialog = new QDialog(this, Qt::ToolTip | Qt::FramelessWindowHint);
+            dialog->setAttribute(Qt::WA_DeleteOnClose);
+            QVBoxLayout *layout = new QVBoxLayout(dialog);
+            layout->setContentsMargins(10, 10, 10, 10);
+
+            QTextEdit *textEdit = new QTextEdit();
+            textEdit->setReadOnly(true);
+            textEdit->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::LinksAccessibleByMouse);
+            textEdit->setFrameStyle(QFrame::NoFrame);
+            textEdit->setStyleSheet("QTextEdit { background: #252526; color: #d4d4d4; }");
+
+            QString content = QString(
+                "# %1\n\n"
+                "**ID:** `%2`  \n"
+                "**Author:** %3  \n"
+                "**Date:** %4  \n\n"
+                "---  \n\n"
+                "%5"
+            )
+            .arg(m_commit.subject)
+            .arg(m_commit.hash)
+            .arg(m_commit.author)
+            .arg(m_commit.date)
+            .arg(m_commit.message);
+
+            textEdit->setMarkdown(content);
+            layout->addWidget(textEdit);
+            
+            dialog->resize(450, 350);
+            dialog->move(QCursor::pos() + QPoint(10, 10));
+            dialog->show();
+            
+            // Close when mouse moves significantly away or leaves the widget
+            QTimer *checkTimer = new QTimer(dialog);
+            connect(checkTimer, &QTimer::timeout, [this, dialog, checkTimer]() {
+                QPoint mousePos = QCursor::pos();
+                if (!this->rect().contains(this->mapFromGlobal(mousePos)) && 
+                    !dialog->rect().contains(dialog->mapFromGlobal(mousePos))) {
+                    dialog->close();
+                    checkTimer->stop();
+                }
+            });
+            checkTimer->start(100);
+        }
+    });
     QWidget::enterEvent(event);
 }
 
