@@ -16,6 +16,9 @@ DiffView::DiffView(QWidget *parent) : QWidget(parent) {
     leftEdit = new QTextEdit();
     rightEdit = new QTextEdit();
 
+    leftHighlighter = new SyntaxHighlighter(leftEdit->document());
+    rightHighlighter = new SyntaxHighlighter(rightEdit->document());
+
     for (auto edit : {leftEdit, rightEdit}) {
         edit->setReadOnly(true);
         edit->setLineWrapMode(QTextEdit::NoWrap);

@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QTextEdit>
 #include "GitManager.h"
+#include "SyntaxHighlighter.h"
 
 class DiffView : public QWidget {
     Q_OBJECT
@@ -15,6 +16,8 @@ public:
 private:
     QTextEdit *leftEdit;
     QTextEdit *rightEdit;
+    SyntaxHighlighter *leftHighlighter;
+    SyntaxHighlighter *rightHighlighter;
     
     // Gutter/Line Number support would go here in a more complex implementation
     // For now, let's focus on fixing the alignment logic in the CPP.
