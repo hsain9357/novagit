@@ -52,26 +52,29 @@ QList<GitFileStatus> GitManager::getStatus() {
 }
 
 QString GitManager::getFileContent(const QString &filePath, bool staged) {
-    // If staged, compare with HEAD. If unstaged, compare with Index.
-    QString ref = staged ? "HEAD" : "";
-    if (ref.isEmpty()) {
-        // For unstaged changes, we want the version in the index
-        return runGitCommand({"show", ":" + filePath});
+    if (staged) {
+        // For staged changes, we want the version in the HEAD (the "old" version)
+        return runGitCommand({"show", "HEAD:" + filePath});
     } else {
-        return runGitCommand({"show", ref + ":" + filePath});
+        // For unstaged changes, we want the version in the index (the "old" version)
+        return runGitCommand({"show", ":" + filePath});
     }
 }
 
-QString GitManager::getFileContentAtRevision(const QString &filePath, const QString &revision) {
-    return runGitCommand({"show", revision + ":" + filePath});
-}
-
-QString GitManager::getWorkingFileContent(const QString &filePath) {
+QString GitManager::getWorkingFileContent(const QString &filePath, bool staged) {
+    if (staged) {
+        // For staged changes, the "new" version is what's in the index
+        return runGitCommand({"show", ":" + filePath});
+    }
+    // For unstaged changes, the "new" version is what's on disk
     QFile file(m_repositoryPath + "/" + filePath);
     if (file.open(QFile::ReadOnly | QFile::Text)) {
         return QString::fromUtf8(file.readAll());
     }
     return QString();
+}
+QString GitManager::getFileContentAtRevision(const QString &filePath, const QString &revision) {
+    return runGitCommand({"show", revision + ":" + filePath});
 }
 
 QList<GitHunk> GitManager::getHunks(const QString &filePath, bool staged) {

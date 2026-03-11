@@ -422,7 +422,7 @@ void MainWindow::onTabChanged(int index) {
     const auto &info = openTabs[index];
     if (info.hash.isEmpty()) {
         QString original = gitManager->getFileContent(info.filePath, info.staged);
-        QString working = gitManager->getWorkingFileContent(info.filePath);
+        QString working = gitManager->getWorkingFileContent(info.filePath, info.staged);
         auto hunks = gitManager->getHunks(info.filePath, info.staged);
         diffView->setDiff(original, working, hunks);
     } else {
