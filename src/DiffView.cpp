@@ -38,7 +38,20 @@ DiffView::DiffView(QWidget *parent) : QWidget(parent) {
 }
 
 void DiffView::setDiff(const QString &leftContent, const QString &rightContent, const QList<GitHunk> &hunks) {
+    m_firstDiffLine = -1;
     applyDiffAlignment(leftContent, rightContent, hunks);
+    scrollToFirstDiff();
+}
+
+void DiffView::scrollToFirstDiff() {
+    if (m_firstDiffLine != -1) {
+        QScrollBar *vb = rightEdit->verticalScrollBar();
+        QTextBlock block = rightEdit->document()->findBlockByLineNumber(m_firstDiffLine);
+        if (block.isValid()) {
+            int pos = rightEdit->cursorRect(QTextCursor(block)).top();
+            vb->setValue(vb->value() + pos);
+        }
+    }
 }
 
 void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rightContent, const QList<GitHunk> &hunks) {
@@ -141,15 +154,19 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
 
                     if (hasL) {
                         QColor bg = (hasR && !isDifferent) ? Qt::transparent : dCol;
+                        if (bg != Qt::transparent && m_firstDiffLine == -1) m_firstDiffLine = leftDisplay.size();
                         leftDisplay.append({lText, leftIdx + lI + 1, false, bg, lW});
                     } else {
+                        if (m_firstDiffLine == -1) m_firstDiffLine = leftDisplay.size();
                         leftDisplay.append({"", -1, true, pCol});
                     }
 
                     if (hasR) {
                         QColor bg = (hasL && !isDifferent) ? Qt::transparent : aCol;
+                        if (bg != Qt::transparent && m_firstDiffLine == -1) m_firstDiffLine = rightDisplay.size();
                         rightDisplay.append({rText, rightIdx + rI + 1, false, bg, rW});
                     } else {
+                        if (m_firstDiffLine == -1) m_firstDiffLine = rightDisplay.size();
                         rightDisplay.append({"", -1, true, pCol});
                     }
                 }
