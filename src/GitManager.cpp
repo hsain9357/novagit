@@ -126,6 +126,11 @@ bool GitManager::unstageFile(const QString &filePath) {
     return true;
 }
 
+bool GitManager::stageAll() {
+    runGitCommand({"add", "."});
+    return true;
+}
+
 bool GitManager::commit(const QString &message) {
     runGitCommand({"commit", "-m", message});
     return true;

@@ -299,7 +299,14 @@ void MainWindow::commitChanges() {
 void MainWindow::generateAICommitMessage() {
     QString diff = gitManager->getStagedDiff();
     if (diff.isEmpty()) {
-        QMessageBox::warning(this, "No Changes", "No staged changes found. Please stage files first.");
+        // If no staged changes, try to stage everything
+        gitManager->stageAll();
+        refreshStatus();
+        diff = gitManager->getStagedDiff();
+    }
+
+    if (diff.isEmpty()) {
+        QMessageBox::warning(this, "No Changes", "No changes found to stage or generate a message for.");
         return;
     }
 

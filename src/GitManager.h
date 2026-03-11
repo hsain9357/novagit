@@ -41,6 +41,7 @@ public:
     QString getStagedDiff(); // New method
     bool stageFile(const QString &filePath);
     bool unstageFile(const QString &filePath);
+    bool stageAll();
     bool commit(const QString &message);
     bool push();
     bool pull();
