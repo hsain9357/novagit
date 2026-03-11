@@ -4,6 +4,7 @@
 #include <QMenu>
 #include <QClipboard>
 #include <QApplication>
+#include <QToolTip>
 
 CommitItemWidget::CommitItemWidget(const GitCommit &commit, QWidget *parent)
     : QWidget(parent), m_commit(commit) {
@@ -66,7 +67,9 @@ void CommitItemWidget::setupUi() {
     detailsLayout->addWidget(m_hashLabel);
 
     if (!m_commit.message.isEmpty() && m_commit.message != m_commit.subject) {
-        m_messageLabel = new QLabel(m_commit.message);
+        m_messageLabel = new QLabel();
+        m_messageLabel->setTextFormat(Qt::MarkdownText);
+        m_messageLabel->setText(m_commit.message);
         m_messageLabel->setWordWrap(true);
         m_messageLabel->setStyleSheet("color: #bbb; font-size: 12px; padding: 4px; background-color: #2d2d2d; border-radius: 4px;");
         detailsLayout->addWidget(m_messageLabel);
@@ -109,6 +112,13 @@ void CommitItemWidget::setupUi() {
 }
 
 void CommitItemWidget::enterEvent(QEnterEvent *event) {
+    QString tooltip = QString("<h3>%1</h3><p><b>Author:</b> %2<br><b>Date:</b> %3</p><hr>%4")
+                      .arg(m_commit.subject.toHtmlEscaped())
+                      .arg(m_commit.author.toHtmlEscaped())
+                      .arg(m_commit.date.toHtmlEscaped())
+                      .arg(m_commit.message.toHtmlEscaped().replace("\n", "<br>"));
+    
+    QToolTip::showText(QCursor::pos(), tooltip, this);
     QWidget::enterEvent(event);
 }
 
