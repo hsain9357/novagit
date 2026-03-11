@@ -46,8 +46,6 @@ void MainWindow::setupUi() {
 
     // Left Sidebar
     QWidget *sidebar = new QWidget();
-    sidebar->setFixedWidth(320);
-    sidebar->setStyleSheet("QWidget { background-color: #252526; }");
     QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebar);
     sidebarLayout->setContentsMargins(10, 10, 10, 10);
     sidebarLayout->setSpacing(8);
