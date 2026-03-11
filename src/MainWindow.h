@@ -25,6 +25,7 @@ private slots:
     void refreshStatus();
     void refreshLog();
     void onFileSelected(QListWidgetItem *item);
+    void showCommitDiff(const QString &hash);
     void checkoutCommit(const QString &hash);
     void resetCommit(const QString &hash, bool hard);
     void generateAICommitMessage();

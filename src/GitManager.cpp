@@ -116,6 +116,11 @@ QString GitManager::getStagedDiff() {
     return runGitCommand({"diff", "--cached"});
 }
 
+QString GitManager::getCommitDiff(const QString &hash) {
+    // -U0 for compact diff, or regular diff for full context
+    return runGitCommand({"show", hash, "--format="}); // --format= removes the commit message header
+}
+
 bool GitManager::stageFile(const QString &filePath) {
     runGitCommand({"add", filePath});
     return true;

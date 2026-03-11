@@ -38,7 +38,8 @@ public:
     QString getWorkingFileContent(const QString &filePath);       // Get current file content
     QList<GitHunk> getHunks(const QString &filePath, bool staged);
     QString getDiff(const QString &filePath, bool staged);
-    QString getStagedDiff(); // New method
+    QString getStagedDiff();
+    QString getCommitDiff(const QString &hash); // New method
     bool stageFile(const QString &filePath);
     bool unstageFile(const QString &filePath);
     bool stageAll();

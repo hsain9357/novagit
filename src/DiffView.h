@@ -11,6 +11,7 @@ class DiffView : public QWidget {
 public:
     explicit DiffView(QWidget *parent = nullptr);
     void setDiff(const QString &leftContent, const QString &rightContent, const QList<GitHunk> &hunks);
+    void setUnifiedDiff(const QString &diff);
     void clear();
     void scrollToFirstDiff();
 

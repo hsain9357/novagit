@@ -94,6 +94,7 @@ void CommitItemWidget::leaveEvent(QEvent *event) {
 
 void CommitItemWidget::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
+        emit commitSelected(m_commit.hash);
         toggleExpanded();
     } else {
         QWidget::mousePressEvent(event);

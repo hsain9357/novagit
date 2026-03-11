@@ -54,6 +54,11 @@ void DiffView::scrollToFirstDiff() {
     }
 }
 
+void DiffView::setUnifiedDiff(const QString &diff) {
+    clear();
+    rightEdit->setPlainText(diff);
+}
+
 void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rightContent, const QList<GitHunk> &hunks) {
     QStringList leftLines = leftContent.split('\n');
     QStringList rightLines = rightContent.split('\n');

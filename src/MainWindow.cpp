@@ -234,13 +234,20 @@ void MainWindow::refreshLog() {
         
         connect(widget, &CommitItemWidget::checkoutRequested, this, &MainWindow::checkoutCommit);
         connect(widget, &CommitItemWidget::resetRequested, this, &MainWindow::resetCommit);
+        connect(widget, &CommitItemWidget::commitSelected, this, &MainWindow::showCommitDiff);
         connect(widget, &CommitItemWidget::sizeChanged, [item, widget]() {
             item->setSizeHint(widget->sizeHint());
         });
     }
 }
 
+void MainWindow::showCommitDiff(const QString &hash) {
+    QString diff = gitManager->getCommitDiff(hash);
+    diffView->setUnifiedDiff(diff);
+}
+
 void MainWindow::checkoutCommit(const QString &hash) {
+
     if (gitManager->checkout(hash)) {
         refreshStatus();
         diffView->clear();
