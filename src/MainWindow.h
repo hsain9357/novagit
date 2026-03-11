@@ -15,6 +15,7 @@ public:
     MainWindow(QWidget *parent = nullptr);
 
 private slots:
+    void openFolder();
     void refreshStatus();
     void onFileSelected(QListWidgetItem *item);
     void stageSelected();

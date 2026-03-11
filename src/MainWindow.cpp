@@ -3,6 +3,7 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QHeaderView>
+#include <QFileDialog>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     gitManager = new GitManager(this);
@@ -19,6 +20,9 @@ void MainWindow::setupUi() {
     QWidget *sidebar = new QWidget();
     sidebar->setFixedWidth(300);
     QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebar);
+
+    QPushButton *openBtn = new QPushButton("Open Folder");
+    sidebarLayout->addWidget(openBtn);
 
     sidebarLayout->addWidget(new QLabel("STAGED CHANGES"));
     stagedList = new QListWidget();
@@ -53,6 +57,7 @@ void MainWindow::setupUi() {
     mainLayout->addWidget(splitter);
 
     // Connect signals
+    connect(openBtn, &QPushButton::clicked, this, &MainWindow::openFolder);
     connect(unstagedList, &QListWidget::itemClicked, this, &MainWindow::onFileSelected);
     connect(stagedList, &QListWidget::itemClicked, this, &MainWindow::onFileSelected);
     connect(unstagedList, &QListWidget::itemDoubleClicked, this, &MainWindow::stageSelected);
@@ -62,7 +67,17 @@ void MainWindow::setupUi() {
     connect(pushBtn, &QPushButton::clicked, this, &MainWindow::pushChanges);
 }
 
+void MainWindow::openFolder() {
+    QString dir = QFileDialog::getExistingDirectory(this, "Open Git Repository", gitManager->repositoryPath());
+    if (!dir.isEmpty()) {
+        gitManager->setRepositoryPath(dir);
+        refreshStatus();
+        diffView->clear();
+    }
+}
+
 void MainWindow::refreshStatus() {
+    setWindowTitle("Git GUI - " + gitManager->repositoryPath());
     stagedList->clear();
     unstagedList->clear();
     auto statuses = gitManager->getStatus();

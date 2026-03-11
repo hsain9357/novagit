@@ -16,6 +16,9 @@ class GitManager : public QObject {
 public:
     explicit GitManager(QObject *parent = nullptr);
 
+    void setRepositoryPath(const QString &path);
+    QString repositoryPath() const;
+
     QList<GitFileStatus> getStatus();
     QString getDiff(const QString &filePath, bool staged);
     bool stageFile(const QString &filePath);
@@ -26,6 +29,7 @@ public:
 
 private:
     QString runGitCommand(const QStringList &arguments);
+    QString m_repositoryPath;
 };
 
 #endif // GITMANAGER_H

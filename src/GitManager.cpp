@@ -2,11 +2,21 @@
 #include <QDebug>
 #include <QDir>
 
-GitManager::GitManager(QObject *parent) : QObject(parent) {}
+GitManager::GitManager(QObject *parent) : QObject(parent) {
+    m_repositoryPath = QDir::currentPath();
+}
+
+void GitManager::setRepositoryPath(const QString &path) {
+    m_repositoryPath = path;
+}
+
+QString GitManager::repositoryPath() const {
+    return m_repositoryPath;
+}
 
 QString GitManager::runGitCommand(const QStringList &arguments) {
     QProcess process;
-    process.setWorkingDirectory(QDir::currentPath());
+    process.setWorkingDirectory(m_repositoryPath);
     process.start("git", arguments);
     if (!process.waitForFinished()) {
         return QString();
