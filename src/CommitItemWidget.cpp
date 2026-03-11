@@ -40,6 +40,7 @@ void CommitItemWidget::setupUi() {
     m_subjectLabel = new QLabel(m_commit.subject);
     m_subjectLabel->setStyleSheet("font-weight: 600; color: #e1e1e1; font-size: 13px;");
     m_subjectLabel->setWordWrap(true);
+    m_subjectLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     mainVLayout->addWidget(m_subjectLabel);
 
     QHBoxLayout *infoLayout = new QHBoxLayout();

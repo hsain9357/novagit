@@ -54,7 +54,8 @@ void MainWindow::setupUi() {
     openBtn->setObjectName("secondaryBtn");
     sidebarLayout->addWidget(openBtn);
 
-    sidebarLayout->addWidget(new QLabel("RECENT REPOSITORIES"));
+    QLabel *recentLabel = new QLabel("Recent Repositories");
+    sidebarLayout->addWidget(recentLabel);
     recentFoldersCombo = new QComboBox();
     recentFoldersCombo->setPlaceholderText("Select repository...");
     sidebarLayout->addWidget(recentFoldersCombo);
@@ -68,7 +69,7 @@ void MainWindow::setupUi() {
     QVBoxLayout *stagedLayout = new QVBoxLayout(stagedContainer);
     stagedLayout->setContentsMargins(0, 0, 0, 0);
     stagedLayout->setSpacing(4);
-    QLabel *stagedLabel = new QLabel("STAGED CHANGES");
+    QLabel *stagedLabel = new QLabel("Staged Changes");
     stagedLayout->addWidget(stagedLabel);
     stagedList = new QListWidget();
     stagedList->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
@@ -80,7 +81,7 @@ void MainWindow::setupUi() {
     QVBoxLayout *unstagedLayout = new QVBoxLayout(unstagedContainer);
     unstagedLayout->setContentsMargins(0, 0, 0, 0);
     unstagedLayout->setSpacing(4);
-    QLabel *unstagedLabel = new QLabel("CHANGES");
+    QLabel *unstagedLabel = new QLabel("Changes");
     unstagedLayout->addWidget(unstagedLabel);
     unstagedList = new QListWidget();
     unstagedList->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
@@ -92,7 +93,7 @@ void MainWindow::setupUi() {
     QVBoxLayout *logLayout = new QVBoxLayout(logContainer);
     logLayout->setContentsMargins(0, 0, 0, 0);
     logLayout->setSpacing(4);
-    QLabel *logLabel = new QLabel("GIT HISTORY");
+    QLabel *logLabel = new QLabel("Git History");
     logLayout->addWidget(logLabel);
     logList = new QListWidget();
     logList->setSelectionMode(QAbstractItemView::NoSelection);
