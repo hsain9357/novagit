@@ -8,6 +8,68 @@
 #include <QPainter>
 #include <QPixmap>
 
+#include <QMouseEvent>
+
+DiffMinimap::DiffMinimap(QWidget *parent) : QWidget(parent) {
+    setFixedWidth(15);
+    setCursor(Qt::PointingHandCursor);
+}
+
+void DiffMinimap::setMarkers(const QList<QColor> &colors) {
+    m_colors = colors;
+    update();
+}
+
+void DiffMinimap::setScrollBar(QScrollBar *scrollBar) {
+    m_scrollBar = scrollBar;
+    connect(m_scrollBar, &QScrollBar::valueChanged, this, [this](){ update(); });
+    connect(m_scrollBar, &QScrollBar::rangeChanged, this, [this](){ update(); });
+}
+
+void DiffMinimap::paintEvent(QPaintEvent *event) {
+    Q_UNUSED(event);
+    QPainter painter(this);
+    painter.fillRect(rect(), QColor(30, 30, 30));
+
+    if (m_colors.isEmpty()) return;
+
+    double h = height();
+    double lineH = h / m_colors.size();
+
+    for (int i = 0; i < m_colors.size(); ++i) {
+        if (m_colors[i] != Qt::transparent && m_colors[i].alpha() > 0) {
+            QColor c = m_colors[i];
+            c.setAlpha(qMin(255, c.alpha() * 2)); // Boost visibility
+            painter.fillRect(QRectF(0, i * lineH, width(), qMax(1.0, lineH)), c);
+        }
+    }
+
+    if (m_scrollBar && m_scrollBar->maximum() > 0) {
+        double visibleRatio = (double)m_scrollBar->pageStep() / (m_scrollBar->maximum() + m_scrollBar->pageStep());
+        double scrollRatio = (double)m_scrollBar->value() / (m_scrollBar->maximum() + m_scrollBar->pageStep());
+        
+        painter.setPen(QPen(QColor(255, 255, 255, 60), 1));
+        painter.drawRect(QRectF(0, scrollRatio * h, width() - 1, visibleRatio * h));
+    }
+}
+
+void DiffMinimap::mousePressEvent(QMouseEvent *event) {
+    scrollTo(event->position().y());
+}
+
+void DiffMinimap::mouseMoveEvent(QMouseEvent *event) {
+    if (event->buttons() & Qt::LeftButton) {
+        scrollTo(event->position().y());
+    }
+}
+
+void DiffMinimap::scrollTo(int y) {
+    if (!m_scrollBar || m_colors.isEmpty()) return;
+    double ratio = (double)y / height();
+    int val = ratio * (m_scrollBar->maximum() + m_scrollBar->pageStep()) - m_scrollBar->pageStep() / 2;
+    m_scrollBar->setValue(val);
+}
+
 DiffView::DiffView(QWidget *parent) : QWidget(parent) {
     QHBoxLayout *layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -28,8 +90,12 @@ DiffView::DiffView(QWidget *parent) : QWidget(parent) {
     }
     rightEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 
+    m_minimap = new DiffMinimap();
+    m_minimap->setScrollBar(rightEdit->verticalScrollBar());
+
     layout->addWidget(leftEdit);
     layout->addWidget(rightEdit);
+    layout->addWidget(m_minimap);
 
     connect(rightEdit->verticalScrollBar(), &QScrollBar::valueChanged,
             leftEdit->verticalScrollBar(), &QScrollBar::setValue);
@@ -260,6 +326,12 @@ void DiffView::applyDiffAlignment(const QString &leftContent, const QString &rig
 
     render(leftEdit, leftDisplay, dW);
     render(rightEdit, rightDisplay, aW);
+
+    QList<QColor> markers;
+    for (const auto &dl : rightDisplay) {
+        markers.append(dl.bgColor);
+    }
+    m_minimap->setMarkers(markers);
 }
 
 void DiffView::clear() {
