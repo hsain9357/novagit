@@ -9,6 +9,7 @@
 #include <QComboBox>
 #include <QSettings>
 #include <QTabBar>
+#include <QTimer>
 #include "GitManager.h"
 #include "DiffView.h"
 #include "AIHandler.h"
@@ -59,6 +60,7 @@ private:
     QPushButton *generateBtn;
     QComboBox *recentFoldersCombo;
     AIHandler *aiHandler;
+    QTimer *refreshTimer;
     
     void setupUi();
     void loadSettings();

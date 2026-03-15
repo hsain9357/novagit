@@ -18,6 +18,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     connect(aiHandler, &AIHandler::errorOccurred, this, &MainWindow::onAIError);
     setupUi();
     loadSettings();
+
+    refreshTimer = new QTimer(this);
+    connect(refreshTimer, &QTimer::timeout, this, &MainWindow::refreshStatus);
+    refreshTimer->start(4000);
+
     if (!gitManager->repositoryPath().isEmpty()) {
         updateRecentFolders(gitManager->repositoryPath());
     }
