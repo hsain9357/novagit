@@ -11,6 +11,8 @@
 
 #include <QFileInfo>
 
+#include <QSet>
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     gitManager = new GitManager(this);
     aiHandler = new AIHandler(this);
@@ -257,11 +259,25 @@ void MainWindow::refreshStatus() {
 }
 
 void MainWindow::refreshLog() {
+    QSet<QString> expandedHashes;
+    for (int i = 0; i < logList->count(); ++i) {
+        auto *item = logList->item(i);
+        auto *widget = qobject_cast<CommitItemWidget*>(logList->itemWidget(item));
+        if (widget && widget->isExpanded()) {
+            expandedHashes.insert(widget->hash());
+        }
+    }
+
     logList->clear();
     auto commits = gitManager->getLog(20);
     for (const auto &commit : commits) {
         QListWidgetItem *item = new QListWidgetItem(logList);
         CommitItemWidget *widget = new CommitItemWidget(commit);
+        
+        if (expandedHashes.contains(commit.hash)) {
+            widget->setExpanded(true);
+        }
+
         item->setSizeHint(widget->sizeHint());
         logList->addItem(item);
         logList->setItemWidget(item, widget);

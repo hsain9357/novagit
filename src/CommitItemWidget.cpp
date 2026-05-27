@@ -178,8 +178,14 @@ void CommitItemWidget::mousePressEvent(QMouseEvent *event) {
     }
 }
 
+void CommitItemWidget::setExpanded(bool expanded) {
+    if (m_expanded != expanded) {
+        m_expanded = expanded;
+        m_detailsContainer->setVisible(m_expanded);
+        emit sizeChanged();
+    }
+}
+
 void CommitItemWidget::toggleExpanded() {
-    m_expanded = !m_expanded;
-    m_detailsContainer->setVisible(m_expanded);
-    emit sizeChanged();
+    setExpanded(!m_expanded);
 }

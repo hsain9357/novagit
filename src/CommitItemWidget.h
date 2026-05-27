@@ -11,6 +11,9 @@ class CommitItemWidget : public QWidget {
     Q_OBJECT
 public:
     explicit CommitItemWidget(const GitCommit &commit, QWidget *parent = nullptr);
+    void setExpanded(bool expanded);
+    bool isExpanded() const { return m_expanded; }
+    QString hash() const { return m_commit.hash; }
 
 signals:
     void checkoutRequested(const QString &hash);
